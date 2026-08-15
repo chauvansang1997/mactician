@@ -13,6 +13,10 @@ readonly MINIMUM_FRAMES_PER_ROUND="${TFT_UI_TRANSPORT_MINIMUM_FRAMES_PER_ROUND:-
 readonly ADB_SERVER_PORT="${TFT_ADB_SERVER_PORT:-5038}"
 readonly SERIAL="${TFT_SERIAL:-emulator-5582}"
 readonly EXPECTED_GRAPHICS_PROFILE="${TFT_UI_TRANSPORT_EXPECTED_GRAPHICS_PROFILE:-}"
+readonly EXPECTED_ANGLE_ENABLED="${TFT_UI_TRANSPORT_EXPECTED_ANGLE_ENABLED:-}"
+readonly EXPECTED_ANGLE_DISABLED="${TFT_UI_TRANSPORT_EXPECTED_ANGLE_DISABLED:-}"
+readonly EXPECT_ANGLE_MAPPED="${TFT_UI_TRANSPORT_EXPECT_ANGLE_MAPPED:-}"
+readonly MEASUREMENT_ROOT="${TFT_UI_TRANSPORT_ROOT:-$PROJECT_DIR/runtime/measurements/android-ui-transport}"
 readonly TFT_PACKAGE="com.riotgames.league.teamfighttactics.pbe"
 readonly SETTINGS_PACKAGE="com.android.settings"
 readonly ADB="$(tft_resolve_adb)"
@@ -39,6 +43,18 @@ if [[ -z "$JQ" ]]; then
 fi
 if [[ ! "$EXPECTED_GRAPHICS_PROFILE" =~ '^[a-z0-9][a-z0-9-]*$' ]]; then
     print -u2 "TFT_UI_TRANSPORT_EXPECTED_GRAPHICS_PROFILE is required and must use lowercase letters, digits, and dashes."
+    exit 2
+fi
+for feature_expectation in "$EXPECTED_ANGLE_ENABLED" "$EXPECTED_ANGLE_DISABLED"; do
+    if [[ -n "$feature_expectation" \
+            && ! "$feature_expectation" =~ '^([A-Za-z0-9_]+[*]?)(:[A-Za-z0-9_]+[*]?)*$' ]]; then
+        print -u2 "Expected ANGLE features must be a feature or a colon-separated list."
+        exit 2
+    fi
+done
+if [[ -n "$EXPECT_ANGLE_MAPPED" && "$EXPECT_ANGLE_MAPPED" != 0 \
+        && "$EXPECT_ANGLE_MAPPED" != 1 ]]; then
+    print -u2 "TFT_UI_TRANSPORT_EXPECT_ANGLE_MAPPED must be 0 or 1 when set."
     exit 2
 fi
 if [[ "$ADB_SERVER_PORT" != <-> ]] \
@@ -71,6 +87,26 @@ readonly HWUI_RENDERER="$(
     "$ADB" -s "$SERIAL" shell getprop debug.hwui.renderer 2>/dev/null \
         | tr -d '\r'
 )"
+readonly ACTIVE_ANGLE_ENABLED="$(
+    "$ADB" -s "$SERIAL" shell getprop debug.angle.feature_overrides_enabled 2>/dev/null \
+        | tr -d '\r'
+)"
+readonly ACTIVE_ANGLE_DISABLED="$(
+    "$ADB" -s "$SERIAL" shell getprop debug.angle.feature_overrides_disabled 2>/dev/null \
+        | tr -d '\r'
+)"
+if [[ -n "$EXPECTED_ANGLE_ENABLED" \
+        && "$ACTIVE_ANGLE_ENABLED" != "$EXPECTED_ANGLE_ENABLED" ]]; then
+    print -u2 "Active ANGLE enabled features do not match the requested transport profile."
+    print -u2 "Actual: ${ACTIVE_ANGLE_ENABLED:-<empty>}"
+    exit 1
+fi
+if [[ -n "$EXPECTED_ANGLE_DISABLED" \
+        && "$ACTIVE_ANGLE_DISABLED" != "$EXPECTED_ANGLE_DISABLED" ]]; then
+    print -u2 "Active ANGLE disabled features do not match the requested transport profile."
+    print -u2 "Actual: ${ACTIVE_ANGLE_DISABLED:-<empty>}"
+    exit 1
+fi
 
 readonly DISPLAY_SIZE="$(
     "$ADB" -s "$SERIAL" shell wm size 2>/dev/null \
@@ -103,7 +139,7 @@ readonly SWIPE_LOW_Y=$(( DISPLAY_HEIGHT * 3 / 4 ))
 readonly SWIPE_HIGH_Y=$(( DISPLAY_HEIGHT / 4 ))
 
 readonly UTC="$(date -u +%Y%m%dT%H%M%SZ)"
-readonly RUN_DIR="$PROJECT_DIR/runtime/measurements/android-ui-transport/${UTC}__${LABEL}"
+readonly RUN_DIR="$MEASUREMENT_ROOT/${UTC}__${LABEL}"
 readonly ROUNDS_JSONL="$RUN_DIR/rounds.jsonl"
 mkdir -p "${RUN_DIR:h}"
 if ! mkdir "$RUN_DIR" 2>/dev/null; then
@@ -116,6 +152,7 @@ if ! mkdir "$RUN_DIR" 2>/dev/null; then
     exit 1
 fi
 : > "$ROUNDS_JSONL"
+typeset SETTINGS_ANGLE_MAPPED=unknown
 
 write_rejected_summary() {
     local reason="$1"
@@ -128,6 +165,9 @@ write_rejected_summary() {
         --argjson display_density "$DISPLAY_DENSITY" \
         --arg transport "$TRANSPORT" \
         --arg hwui_renderer "$HWUI_RENDERER" \
+        --arg angle_enabled "$ACTIVE_ANGLE_ENABLED" \
+        --arg angle_disabled "$ACTIVE_ANGLE_DISABLED" \
+        --arg settings_angle_mapped "$SETTINGS_ANGLE_MAPPED" \
         --arg rejected_reason "$reason" \
         --argjson swipe_pairs "$SWIPE_PAIRS" \
         --argjson swipe_duration_ms "$SWIPE_DURATION_MS" \
@@ -136,6 +176,8 @@ write_rejected_summary() {
           graphics_profile: $graphics_profile,
           display: $display, display_density: $display_density,
           transport: $transport, hwui_renderer: $hwui_renderer,
+          angle_features: {enabled: $angle_enabled, disabled: $angle_disabled},
+          settings_guest_angle_mapped: $settings_angle_mapped,
           swipe_pairs: $swipe_pairs, swipe_duration_ms: $swipe_duration_ms,
           minimum_frames_per_round: $minimum_frames_per_round,
           rejected_reason: $rejected_reason, rounds: .}' \
@@ -152,6 +194,25 @@ if ! grep -Fqx 'Status: ok' "$RUN_DIR/start.txt" \
     exit 1
 fi
 sleep 2
+
+settings_pid="$(
+    "$ADB" -s "$SERIAL" shell pidof "$SETTINGS_PACKAGE" 2>/dev/null \
+        | tr -d '\r' | awk '{ print $1 }'
+)"
+if [[ "$settings_pid" == <-> ]] \
+        && "$ADB" -s "$SERIAL" shell \
+            "grep -Fq libGLESv2_angle.so /proc/$settings_pid/maps" 2>/dev/null; then
+    SETTINGS_ANGLE_MAPPED=yes
+else
+    SETTINGS_ANGLE_MAPPED=no
+fi
+if [[ -n "$EXPECT_ANGLE_MAPPED" \
+        && ( ( "$EXPECT_ANGLE_MAPPED" == 1 && "$SETTINGS_ANGLE_MAPPED" != yes ) \
+            || ( "$EXPECT_ANGLE_MAPPED" == 0 && "$SETTINGS_ANGLE_MAPPED" != no ) ) ]]; then
+    write_rejected_summary settings_angle_mapping_mismatch
+    print -u2 "Settings guest ANGLE mapping is '$SETTINGS_ANGLE_MAPPED', expected '$EXPECT_ANGLE_MAPPED'."
+    exit 1
+fi
 
 integer round pair
 for (( round = 1; round <= ROUNDS; round++ )); do
@@ -212,6 +273,9 @@ done
     --argjson display_density "$DISPLAY_DENSITY" \
     --arg transport "$TRANSPORT" \
     --arg hwui_renderer "$HWUI_RENDERER" \
+    --arg angle_enabled "$ACTIVE_ANGLE_ENABLED" \
+    --arg angle_disabled "$ACTIVE_ANGLE_DISABLED" \
+    --arg settings_angle_mapped "$SETTINGS_ANGLE_MAPPED" \
     --argjson swipe_pairs "$SWIPE_PAIRS" \
     --argjson swipe_duration_ms "$SWIPE_DURATION_MS" \
     --argjson minimum_frames_per_round "$MINIMUM_FRAMES_PER_ROUND" \
@@ -227,6 +291,8 @@ done
         graphics_profile: $graphics_profile,
         display: $display, display_density: $display_density,
         transport: $transport, hwui_renderer: $hwui_renderer,
+        angle_features: {enabled: $angle_enabled, disabled: $angle_disabled},
+        settings_guest_angle_mapped: $settings_angle_mapped,
         swipe_pairs: $swipe_pairs,
         swipe_duration_ms: $swipe_duration_ms,
         minimum_frames_per_round: $minimum_frames_per_round, rounds: $all,
@@ -244,7 +310,8 @@ done
     "$ROUNDS_JSONL" > "$RUN_DIR/summary.json"
 
 print "Android UI transport probe complete: $RUN_DIR"
-"$JQ" '{"label": .label, graphics_profile, transport, hwui_renderer, warm_mean_elapsed_ms,
+"$JQ" '{"label": .label, graphics_profile, transport, hwui_renderer,
+        angle_features, settings_guest_angle_mapped, warm_mean_elapsed_ms,
         warm_median_elapsed_ms, warm_max_p95_ms, warm_max_p99_ms,
         warm_total_janky_frames}' "$RUN_DIR/summary.json"
 print "TFT remains stopped in the running experimental AVD."

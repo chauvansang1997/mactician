@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so loaded by the live TFT PBE process",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-ubo-pool-16m.ini",
+    "profile_sha256": "1799397dd17f53462b306f3c9d564b05da645c228f0b660f5a0903c5932e9540",
+    "process_pid": 2920,
+    "load_bias": "0x6eb1810000",
+    "addresses_are_aslr_specific": true
+  },
+  "methodology": {
+    "mapping": "offset-zero libUnreal.so mapping plus storage VMAs recovered from the same SHA-256 binary",
+    "read": "four bytes per known FAutoConsoleVariableRef storage through root /proc/PID/mem",
+    "decode": "unsigned little-endian 32-bit integer",
+    "tool": "scripts/read-unreal-cvar-storage.command",
+    "scope": "post-initialization live storage; this establishes effective values but not FPS benefit"
+  },
+  "values": [
+    {"cvar": "OpenGL.UseStagingBuffer", "storage_vma": "0xbc7ccdc", "value_u32": 0},
+    {"cvar": "OpenGL.UseMapBuffer", "storage_vma": "0xb9f9e8c", "value_u32": 1},
+    {"cvar": "OpenGL.MaxSubDataSize", "storage_vma": "0xbc7cce4", "value_u32": 0},
+    {"cvar": "OpenGL.RebindTextureBuffers", "storage_vma": "0xbc7cce8", "value_u32": 0},
+    {"cvar": "OpenGL.UseBufferDiscard", "storage_vma": "0xb9f9e90", "value_u32": 1},
+    {"cvar": "OpenGL.UseUnsynchronizedBufferMapping", "storage_vma": "0xb9f9e94", "value_u32": 1},
+    {"cvar": "OpenGL.UsePersistentMappingStagingBuffer", "storage_vma": "0xb9f9e88", "value_u32": 1},
+    {"cvar": "OpenGL.UBOPoolSize", "storage_vma": "0xbc7dbf4", "value_u32": 16777216},
+    {"cvar": "OpenGL.UBODirectWrite", "storage_vma": "0xbc7dbf8", "value_u32": 0}
+  ],
+  "interpretation": {
+    "ubo_pool": "The configured 16777216-byte pool remains in live storage after OpenGL initialization and is not a startup-only or silently reverted setting.",
+    "direct_write": "This one-factor pool run keeps UBODirectWrite at zero, preserving isolation from the direct-write candidate.",
+    "mapping_flags": "All non-UBO values match the direct-write run, including already-enabled map/discard/unsynchronized paths.",
+    "boundary": "Promotion still requires matched late-PvP A/B and render-correctness checks."
+  }
+}

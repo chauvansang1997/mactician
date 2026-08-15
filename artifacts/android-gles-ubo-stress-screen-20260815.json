@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "kind": "android_gles_ubo_strategy_campaign",
+  "generated_utc": "2026-08-15T02:53:20Z",
+  "purpose": "Rank UBO update strategies on the attested guest ANGLE to Vulkan path without TFT authentication.",
+  "limitations": [
+    "This synthetic workload is not a TFT FPS measurement.",
+    "A favorable result only prioritizes an Unreal-side candidate for matched late-PvP validation.",
+    "No candidate is safe to promote until TFT visual correctness, stability, and matched combat tails are verified."
+  ],
+  "probe": {
+    "apk_sha256": "b8833ca128055438d0f70d50bf79564d5f9c18e051be09b30cd2db515a9071c8",
+    "manifest_sha256": "6b46a3d18ebd39cf0865d281edf542fe8d12780652ff6c65706cb4f23c9b00ad",
+    "activity_source_sha256": "ec1f074e2d1ce10c87fea872252b75a4a48cd80be38235c7ba445be6885aa754"
+  },
+  "runtime": {
+    "graphics_profile": "osft",
+    "transport": "virtio-gpu-asg",
+    "angle_features": {
+      "enabled": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled": "preferSubmitAtFBOBoundary"
+    },
+    "renderer": "ANGLE (Apple, Vulkan 1.3.0 (Apple M1 Max (0x1A050207)), Apple-0.2.2208)",
+    "ubo_alignment": 16,
+    "ubo_stride": 32
+  },
+  "workload": {
+    "rounds": 20,
+    "warmup_rounds": 7,
+    "measured_rounds": 13,
+    "frames": 120,
+    "draws_per_frame": 256,
+    "total_draw_calls_per_round": 30720,
+    "render_target_size": 512
+  },
+  "campaign": {
+    "successful_runs": 13,
+    "control_runs": 7,
+    "candidate_runs": 6,
+    "failed_runs": 0,
+    "alternating_bracket_design": true
+  },
+  "runs": [
+    {
+      "utc": "20260815T024911Z",
+      "label": "campaign-control-0",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6656.52,
+      "p95_ns_per_draw": 6748.711,
+      "median_frames_per_second": 586.831,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T024918Z",
+      "label": "campaign-map-pool-0",
+      "mode": "pooled_map_once",
+      "median_ns_per_draw": 4471.684,
+      "p95_ns_per_draw": 4949.029,
+      "median_frames_per_second": 873.552,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T024923Z",
+      "label": "campaign-control-1",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6627.219,
+      "p95_ns_per_draw": 6925.067,
+      "median_frames_per_second": 589.425,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T024929Z",
+      "label": "campaign-pooled-subdata-0",
+      "mode": "pooled_subdata",
+      "median_ns_per_draw": 90674.436,
+      "p95_ns_per_draw": 92296.181,
+      "median_frames_per_second": 43.08,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025027Z",
+      "label": "campaign-control-2",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6642.89,
+      "p95_ns_per_draw": 6865.698,
+      "median_frames_per_second": 588.035,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025033Z",
+      "label": "campaign-map-invalidate-0",
+      "mode": "map_invalidate",
+      "median_ns_per_draw": 6698.305,
+      "p95_ns_per_draw": 6884.929,
+      "median_frames_per_second": 583.17,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025040Z",
+      "label": "campaign-control-3",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6706.551,
+      "p95_ns_per_draw": 6946.637,
+      "median_frames_per_second": 582.453,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025046Z",
+      "label": "campaign-map-pool-1",
+      "mode": "pooled_map_once",
+      "median_ns_per_draw": 4440.617,
+      "p95_ns_per_draw": 4634.464,
+      "median_frames_per_second": 879.664,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025051Z",
+      "label": "campaign-control-4",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6868.57,
+      "p95_ns_per_draw": 6982.945,
+      "median_frames_per_second": 568.714,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025058Z",
+      "label": "campaign-pooled-subdata-1",
+      "mode": "pooled_subdata",
+      "median_ns_per_draw": 90584.72,
+      "p95_ns_per_draw": 92362.672,
+      "median_frames_per_second": 43.123,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025155Z",
+      "label": "campaign-control-5",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6704.612,
+      "p95_ns_per_draw": 6941.769,
+      "median_frames_per_second": 582.621,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025202Z",
+      "label": "campaign-map-invalidate-1",
+      "mode": "map_invalidate",
+      "median_ns_per_draw": 6319.888,
+      "p95_ns_per_draw": 6511.973,
+      "median_frames_per_second": 618.088,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260815T025208Z",
+      "label": "campaign-control-6",
+      "mode": "single_subdata",
+      "median_ns_per_draw": 6747.906,
+      "p95_ns_per_draw": 6999.758,
+      "median_frames_per_second": 578.883,
+      "gl_error_rounds": 0
+    }
+  ],
+  "comparisons": [
+    {
+      "candidate_mode": "pooled_map_once",
+      "candidate_utc": "20260815T024918Z",
+      "control_before_utc": "20260815T024911Z",
+      "control_after_utc": "20260815T024923Z",
+      "bracketing_control_median_ns_per_draw": 6641.869500000001,
+      "candidate_median_ns_per_draw": 4471.684,
+      "median_delta_percent": -32.67431707292654,
+      "bracketing_control_p95_ns_per_draw": 6836.889,
+      "candidate_p95_ns_per_draw": 4949.029,
+      "p95_delta_percent": -27.612851400688232,
+      "decision": "synthetic_faster"
+    },
+    {
+      "candidate_mode": "pooled_subdata",
+      "candidate_utc": "20260815T024929Z",
+      "control_before_utc": "20260815T024923Z",
+      "control_after_utc": "20260815T025027Z",
+      "bracketing_control_median_ns_per_draw": 6635.0545,
+      "candidate_median_ns_per_draw": 90674.436,
+      "median_delta_percent": 1266.5967024083977,
+      "bracketing_control_p95_ns_per_draw": 6895.3825,
+      "candidate_p95_ns_per_draw": 92296.181,
+      "p95_delta_percent": 1238.521554097978,
+      "decision": "synthetic_slower"
+    },
+    {
+      "candidate_mode": "map_invalidate",
+      "candidate_utc": "20260815T025033Z",
+      "control_before_utc": "20260815T025027Z",
+      "control_after_utc": "20260815T025040Z",
+      "bracketing_control_median_ns_per_draw": 6674.7205,
+      "candidate_median_ns_per_draw": 6698.305,
+      "median_delta_percent": 0.3533406380087367,
+      "bracketing_control_p95_ns_per_draw": 6906.1675,
+      "candidate_p95_ns_per_draw": 6884.929,
+      "p95_delta_percent": -0.30752946551034777,
+      "decision": "synthetic_neutral_or_mixed"
+    },
+    {
+      "candidate_mode": "pooled_map_once",
+      "candidate_utc": "20260815T025046Z",
+      "control_before_utc": "20260815T025040Z",
+      "control_after_utc": "20260815T025051Z",
+      "bracketing_control_median_ns_per_draw": 6787.5605,
+      "candidate_median_ns_per_draw": 4440.617,
+      "median_delta_percent": -34.5771282627978,
+      "bracketing_control_p95_ns_per_draw": 6964.790999999999,
+      "candidate_p95_ns_per_draw": 4634.464,
+      "p95_delta_percent": -33.458678085243335,
+      "decision": "synthetic_faster"
+    },
+    {
+      "candidate_mode": "pooled_subdata",
+      "candidate_utc": "20260815T025058Z",
+      "control_before_utc": "20260815T025051Z",
+      "control_after_utc": "20260815T025155Z",
+      "bracketing_control_median_ns_per_draw": 6786.591,
+      "candidate_median_ns_per_draw": 90584.72,
+      "median_delta_percent": 1234.7602647632662,
+      "bracketing_control_p95_ns_per_draw": 6962.357,
+      "candidate_p95_ns_per_draw": 92362.672,
+      "p95_delta_percent": 1226.600632515684,
+      "decision": "synthetic_slower"
+    },
+    {
+      "candidate_mode": "map_invalidate",
+      "candidate_utc": "20260815T025202Z",
+      "control_before_utc": "20260815T025155Z",
+      "control_after_utc": "20260815T025208Z",
+      "bracketing_control_median_ns_per_draw": 6726.259,
+      "candidate_median_ns_per_draw": 6319.888,
+      "median_delta_percent": -6.041560397837786,
+      "bracketing_control_p95_ns_per_draw": 6970.7635,
+      "candidate_p95_ns_per_draw": 6511.973,
+      "p95_delta_percent": -6.581639156169905,
+      "decision": "synthetic_faster"
+    }
+  ],
+  "strategy_summary": [
+    {
+      "mode": "map_invalidate",
+      "blocks": 2,
+      "mean_median_delta_percent": -2.844109879914525,
+      "mean_p95_delta_percent": -3.444584310840126,
+      "decisions": [
+        {
+          "decision": "synthetic_faster",
+          "blocks": 1
+        },
+        {
+          "decision": "synthetic_neutral_or_mixed",
+          "blocks": 1
+        }
+      ]
+    },
+    {
+      "mode": "pooled_map_once",
+      "blocks": 2,
+      "mean_median_delta_percent": -33.62572266786217,
+      "mean_p95_delta_percent": -30.53576474296578,
+      "decisions": [
+        {
+          "decision": "synthetic_faster",
+          "blocks": 2
+        }
+      ]
+    },
+    {
+      "mode": "pooled_subdata",
+      "blocks": 2,
+      "mean_median_delta_percent": 1250.678483585832,
+      "mean_p95_delta_percent": 1232.561093306831,
+      "decisions": [
+        {
+          "decision": "synthetic_slower",
+          "blocks": 2
+        }
+      ]
+    }
+  ]
+}

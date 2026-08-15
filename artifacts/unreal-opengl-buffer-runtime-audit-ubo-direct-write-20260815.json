@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so loaded by the live TFT PBE process",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-ubo-direct-write.ini",
+    "profile_sha256": "fe480214929c713f9e302bf9fde7abcb66d424979deae7e2c09b8c0428314ee9",
+    "process_pid": 2872,
+    "load_bias": "0x6ccc00a000",
+    "addresses_are_aslr_specific": true
+  },
+  "methodology": {
+    "mapping": "offset-zero libUnreal.so mapping plus storage VMAs recovered from the same SHA-256 binary",
+    "read": "four bytes per known FAutoConsoleVariableRef storage through root /proc/PID/mem",
+    "decode": "unsigned little-endian 32-bit integer",
+    "tool": "scripts/read-unreal-cvar-storage.command",
+    "scope": "post-initialization live storage; this establishes effective values but not FPS benefit"
+  },
+  "values": [
+    {"cvar": "OpenGL.UseStagingBuffer", "storage_vma": "0xbc7ccdc", "value_u32": 0},
+    {"cvar": "OpenGL.UseMapBuffer", "storage_vma": "0xb9f9e8c", "value_u32": 1},
+    {"cvar": "OpenGL.MaxSubDataSize", "storage_vma": "0xbc7cce4", "value_u32": 0},
+    {"cvar": "OpenGL.RebindTextureBuffers", "storage_vma": "0xbc7cce8", "value_u32": 0},
+    {"cvar": "OpenGL.UseBufferDiscard", "storage_vma": "0xb9f9e90", "value_u32": 1},
+    {"cvar": "OpenGL.UseUnsynchronizedBufferMapping", "storage_vma": "0xb9f9e94", "value_u32": 1},
+    {"cvar": "OpenGL.UsePersistentMappingStagingBuffer", "storage_vma": "0xb9f9e88", "value_u32": 1},
+    {"cvar": "OpenGL.UBOPoolSize", "storage_vma": "0xbc7dbf4", "value_u32": 0},
+    {"cvar": "OpenGL.UBODirectWrite", "storage_vma": "0xbc7dbf8", "value_u32": 1}
+  ],
+  "interpretation": {
+    "direct_write": "The candidate remains 1 after OpenGL capability initialization; it is not silently forced back to zero.",
+    "mapping_flags": "MapBuffer, buffer discard, unsynchronized mapping, and persistent-mapping capability are already enabled by platform initialization and are not candidate opportunities.",
+    "staging": "UseStagingBuffer is zero, so the enabled persistent-staging capability is not an active staging path.",
+    "boundary": "Promotion still requires matched late-PvP A/B and render-correctness checks."
+  }
+}

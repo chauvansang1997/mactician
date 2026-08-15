@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "kind": "unreal_skeletal_hot_path_static_audit",
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so copied from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false
+  },
+  "methodology": {
+    "name_lookup": "Exact NUL-terminated UTF-16LE CVar name.",
+    "xref": "AArch64 ADRP/ADD registration references in the exact shipped binary.",
+    "default_decode": "File-backed referenced words use ELF PT_LOAD VMA mapping; constructor-local defaults use explicit stores and constructor control flow.",
+    "scope": "Static capability/default audit only; no static value is TFT FPS evidence."
+  },
+  "observations": [
+    {
+      "cvar": "a.CacheLocalSpaceBounds",
+      "registration_xref": "0x67df260",
+      "compiled_value_u32": 1,
+      "evidence": "mov w28,#1 at 0x67ded68; str w28,[sp,#32] at 0x67df27c",
+      "help": "Cache local-space bounds instead of rebuilding world-space bounds and inverse-transforming them."
+    },
+    {
+      "cvar": "tick.HiPriSkinnedMeshes",
+      "registration_xref": "0x67df22c",
+      "compiled_value_u32": 1,
+      "evidence": "mov w28,#1 at 0x67ded68; str w28,[sp,#32] at 0x67df248",
+      "help": "Schedule skinned-component ticks in a tick group before other ticks."
+    },
+    {
+      "cvar": "r.Skinning.Buffers.AsyncUpdate",
+      "registration_xref": "0x5eaa280",
+      "storage_vma": "0xb9f3148",
+      "compiled_value_u32": 1,
+      "help": "Update skinning-data buffers asynchronously."
+    },
+    {
+      "cvar": "r.SkeletalMesh.UseCachedMDCs",
+      "registration_xref": "0x6d1a5b0",
+      "storage_vma": "0xb9f9360",
+      "compiled_value_u32": 1,
+      "help": "Use the cached mesh-draw-command path for skeletal meshes."
+    },
+    {
+      "cvar": "r.SkeletalMesh.UpdateMethod",
+      "registration_xref": "0x6d1a71c",
+      "storage_vma": "0xb9f9384",
+      "compiled_value_u32": 1,
+      "help": "Value 1 uses the updater system that processes and parallelizes skeletal-mesh work more efficiently; value 0 is the legacy render-command path."
+    },
+    {
+      "cvar": "r.SkeletalMesh.DynamicDataPoolBudget",
+      "registration_xref": "0x6d1a750",
+      "storage_vma": "0xb9f9388",
+      "compiled_value_u32": 4096,
+      "unit": "KiB",
+      "help": "Maximum size of skeletal-mesh dynamic-data pools; non-positive disables pooling."
+    },
+    {
+      "cvar": "r.RenderCommandPipe.SkeletalMesh",
+      "registration_xref": "0x6c811f8",
+      "object_vma": "0xbc64820",
+      "compiled_value_u32": 1,
+      "evidence": "Registration passes w2=0 at 0x6c8120c; the pipe constructor tests bit 0 and cset-eq produces default 1 at 0x326531c before CVar registration.",
+      "help": "Enable the SkeletalMesh render-command pipe; on is the documented default."
+    }
+  ],
+  "cross_checked_existing_defaults": [
+    "a.ParallelAnimEvaluation=1",
+    "a.ParallelAnimUpdate=1",
+    "a.ParallelAnimInterpolation=1",
+    "a.ParallelBlendPhysics=1"
+  ],
+  "decisions": {
+    "parallel_skeletal_enablement": "reject_noop: every audited cache, asynchronous update, updater, command-pipe, and high-priority tick path is already enabled",
+    "dynamic_data_pool": "do_not_raise_without_live_pool-pressure evidence: the 4096 KiB pool is enabled, and a larger pool trades retained memory for hypothetical allocation avoidance",
+    "force_parallel_animation": "retain_prior_rejection: forcing animation updates overrides asset/project thread-safety opt-outs",
+    "candidate_added": false,
+    "promotion": "none",
+    "boundary": "The audit removes no-op hypotheses; it does not measure TFT FPS or replace matched late-PvP profiling."
+  }
+}

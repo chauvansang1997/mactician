@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source": {
+    "base_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-animation-budget-1ms.ini",
+    "candidate_profile_sha256": "5691ec40a9a96b3ee0c238e9db2d70bb3e769ba30fad6f085ee0346adf934fc3",
+    "startup_log_sha256": "81dca84575d2debd3f943bc3dd7c1ef26c25a59ef64d397e57b7282cb3680c68",
+    "startup_log_embedded": false
+  },
+  "methodology": {
+    "attestation": "exact candidate-only CVar deltas observed in DeviceProfile push records",
+    "protected_override": "lower-priority write was logged as ignored and retained the candidate value",
+    "scope": "startup application and priority only; this is not a runtime FPS result"
+  },
+  "result": {
+    "delta_count": 1,
+    "startup_attested_count": 1,
+    "protected_override_count": 1,
+    "all_deltas_startup_attested": true
+  },
+  "deltas": [
+    {
+      "key": "a.Budget.BudgetMs",
+      "base_value": null,
+      "candidate_value": "1.0",
+      "device_profile_push_records": 1,
+      "protected_override_records": 1,
+      "startup_attested": true
+    }
+  ],
+  "decision": {
+    "status": "queued_late_pvp_ab",
+    "rationale": "Epic documents 1.0 ms as an example low scalability animation budget, and Riot enables the allocator; late-PvP FPS and visible unit-animation quality remain unmeasured."
+  }
+}

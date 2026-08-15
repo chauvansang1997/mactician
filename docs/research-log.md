@@ -220,10 +220,443 @@ Disabling emulator audio also screened neutral/slower at 42.1 FPS versus the
 43.0 FPS Performance Max integration run, so AudioMixer sampling weight was not
 treated as proof of a frame-time bottleneck.
 
+The historical stage-1-8 profiles were re-aggregated with a versioned
+simpleperf parser. The selected 16 KiB/on-demand control spent 31.49% of sampled
+CPU on RHIThread and 16.44% in guest transport symbols. Inline submission raised
+those shares to 37.50%/19.78% and regressed FPS by 9.59%. A 32 KiB step retained
+33.93%/18.52%; one faster 1-8 capture did not overturn its failed broader
+screen. This strengthens the boundary diagnosis without claiming late-PvP
+coverage or promoting a new setting.
+
+On 2026-08-15, the harness gained a passive late-PvP observer. It targets stages
+4+ in player-combat rounds, excludes carousel and PvE rounds, sends no input,
+and accepts a pacing window only when the before/after stage and combat phase
+agree. Its first accepted window is followed, never overlapped, by a bounded
+guest profile with a second semantic gate. The raw simpleperf data and SHA-256
+are retained so caller-inclusive attribution remains possible after capture;
+the earlier flattened reports could expose leaf costs but not reliably assign
+transport leaves back to a stripped Unreal caller. This addresses the remaining
+evidence gap directly: stage 1-8 is not substituted for the user's roughly
+15 FPS late-game report.
+
+The observer's session summary now distinguishes pacing acceptance from CPU
+profile coverage. It counts attempted, accepted, and raw-callgraph profiles,
+while explicitly keeping profiling out of the FPS promotion gate. A negative
+fixture makes `adb pull` fail after a successful record/report and verifies that
+the pacing sample survives, the profile is rejected without a fabricated hash,
+no partial raw file remains, and the guest temporary file is still cleaned up.
+Another fixture changes the active profile only after sampling: the raw file is
+preserved for diagnosis, but its attribution is rejected because the
+PID/hash/single-mount bracket no longer passes.
+
+The late-PvP profile now brackets simpleperf with per-thread procfs scheduler
+snapshots. A machine-readable comparison reports CPU time, actual scheduled
+runtime, run-queue delay, timeslices, priority/nice, and the final wait channel,
+with named aggregates for GameThread, RHIThread, RenderThread, AudioMixer,
+TaskGraph, and PSO workers. This closes an ambiguity in the earlier 31.49%
+RHIThread result: the next real heavy capture can show whether that thread is
+doing work or losing time waiting to be scheduled. The fixture covers thread
+creation, role mapping, tick conversion, and nonnegative delta filtering.
+
+A live 120-thread login-screen validation then matched every before/after task.
+It also ruled out a scheduler-priority candidate: RHIThread, GameThread,
+RenderThread, and active TaskGraph workers already ran at priority 10 / nice
+−10. The recorded run-queue ratios are deliberately not generalized to combat;
+their value is proving the collector works before the next authenticated match.
+
+Static inspection found one more Riot-authored CPU hypothesis with unusually
+direct intent: `tft.EnableDragSubsystemTicklessMode` is compiled false and its
+help says it avoids ticking the drag subsystem every frame. A one-line profile
+was queued. It cannot be promoted without unit, item, bench, sell, and idle
+transition checks, because a small steady GameThread win would not justify
+breaking a core interaction path.
+
+Its cold boot logged a direct `false -> 1` DeviceProfile transition. The
+process remained alive, RSS matched the surrounding cold boots, and Android
+reported neither crash-buffer output nor a fresh tombstone. This proves the
+flag was not already enabled and is startup-safe, while deliberately leaving
+drag semantics and combat performance unresolved.
+
+The same pass added a selectable Maximum FPS app preset, explicitly restored
+four remote OpenGL compiler services for the current Riot build, and prepared
+single-factor screens around the selected stack. Four exercise ANGLE
+buffer/barrier behavior and one isolates direct OpenGL UBO writes. They
+cold-booted the game to the login UI and completed verified
+rollback. Riot authentication was unavailable, so they remain unmeasured
+candidates and are not promotion evidence. A focused campaign can select exact
+candidate IDs with `--queue id,id,...`; the queue is checkpointed and cannot be
+silently changed on resume.
+
+An attested Android Settings transport screen then interleaved four cold
+controls with those ANGLE flags. The 12-round control means ranged from 6583.39
+to 6635.68 ms. `preferCPUForBufferSubData` repeated at 6604.20/6635.09 ms and
+disabling buffer barrier events at 6609.95/6635.16 ms; both averages were about
+0.1% slower than the 6612.87 ms control mean. Aggregate barriers and disabling
+image events also stayed inside control noise. A separate 20-round pair found
+no cost from the launcher's two one-hertz ADB polls, and six versus seven vCPUs
+was mixed and below one percent. No setting was promoted from these screens.
+
+An Android GLES microbenchmark replaced the UI proxy for buffer-path questions.
+It ran in a normal Activity with guest ANGLE and Vulkan ranchu mappings
+attested from `/proc/self/maps`, used 16 KiB updates, and discarded seven
+warmup rounds. Two cold runs rejected `preferCPUForBufferSubData` at +2.05%
+mean median latency. Aggregate barriers were neutral (+0.20%); disabling buffer
+barrier events was unstable and worsened both p95 samples. All samples had zero
+GL errors and verified rollback. These results isolate transport behavior and
+are not substituted for late-PvP FPS. The complete curated result is
+[`artifacts/android-gles-buffer-stress-screen-20260815.json`](../artifacts/android-gles-buffer-stress-screen-20260815.json).
+
+A draw-heavy GLES follow-up used 256 UBO-backed triangle draws per frame,
+ping-pong render targets, texture sampling, and explicit buffer/image barriers.
+Eleven interleaved cold boots showed that CPU buffer copy was 3.71% slower on
+median and 9.15% worse on p95. Disabling buffer-barrier events had a 3.68% p95
+regression. Aggregate barriers and disabling image-barrier events stayed below
+the 3% promotion threshold, with the latter also worsening p95. No ANGLE flag
+was promoted. The curated run set is
+[`artifacts/android-gles-draw-stress-screen-20260815.json`](../artifacts/android-gles-draw-stress-screen-20260815.json).
+
+Static UTF-16LE CVar extraction from the current Riot `libUnreal.so` confirmed
+that the build contains `fx.Budget.*`, `fx.Niagara.UseGlobalFXBudget`,
+`fx.Niagara.Scalability.GlobalBudgetCulling`, and the game-specific
+`tft.Tick.RelevancyEnabled`. A two-millisecond adaptive FX-budget profile was
+therefore added as a seventh isolated candidate and cold-booted successfully
+with verified rollback. It remains unpromoted until a matched late-PvP A/B
+also proves that important spell cues remain visible.
+
+Direct runtime queries failed closed. The original per-CVar `-ExecCmds` list
+reached the Unreal command line but logged no responses. Two narrower
+`DumpCVars` follow-ups then requested the relevant FX, Niagara, animation,
+dynamic-mesh, and Riot-tick prefixes: one to CSV and one to `TFT.log`. Both
+command lines were present, but neither produced dump output. The temporary
+extension was removed, and documented engine defaults remain hypotheses rather
+than claimed runtime values.
+
+A later startup audit used `TFT.log`'s own `LogConfig` and
+`LogDeviceProfileManager` transition records. Riot already enables its
+animation budget (`a.Budget.Enabled=1`), reduces it to 1.5 ms at low view
+quality, disables cloth/AnimDynamics, and disables both HZB and occlusion
+queries. The no-occlusion screen was removed as a proven no-op. The audit also
+showed that low effects quality first selects
+`r.EmitterSpawnRateScale=0.125`, after which Performance Max raises it to
+`0.5`. A 0.125 candidate and a separate parallel dynamic-mesh candidate were
+added for a future matched late-PvP visual/performance gate; neither is
+promoted.
+
+The audit also exposed a later saved-settings pass. Although Performance Max
+selects `sg.*=0`, saved quality level 2 reapplies higher unpinned values after
+the DeviceProfile: animation budget 1.5→1.85 ms, upscaler 1→2, texture-streaming
+batch 5→10, translucency volume 24→48, foliage/grass 0.5→1.0, plus SSS/SSGI and
+anisotropic materials. A new isolated profile pins 14 values to the exact Riot
+low-scalability values. Its cold boot produced 14/14 exact DeviceProfile push
+records and 13 explicit lower-priority rejections; grass density had no later
+override record. It then completed verified rollback. This proves configuration
+precedence and boot safety, not an FPS gain; it awaits the same late-PvP A/B gate
+as the other Unreal-side candidates.
+
+Epic documents 1.0 ms as the low-scalability example for the Animation Budget
+Allocator, which dynamically lowers skeletal-mesh update work by significance.
+Because Riot already enables that allocator, a new one-factor profile pins only
+`a.Budget.BudgetMs=1.0`. Its cold boot logged the 1.5→1.0 DeviceProfile push and
+kept 1.0 when saved quality later attempted 1.85. This is a more targeted
+late-board CPU hypothesis than forced URO, but still needs matched late-PvP FPS
+and unit-animation legibility gates.
+
+The passive workflow now has a machine-readable matched-session summarizer. It
+compares only exact late stage/round strata with matching host power, thermal,
+display, renderer, and guest-driver conditions; common strata receive equal
+weight. The screen requires two contributing sessions per variant and keeps
+promotion disabled even when its 3% FPS/tail-latency gates pass, because board
+and opponent composition cannot be held constant across matches. This removes
+the earlier temptation to average unrelated late fights while preserving a
+usable path for the next authenticated control/candidate collection.
+
+A direct AArch64 read of the exact stripped Riot `libUnreal.so` avoided another
+set of no-op boots. The compiled defaults already enable actor pooling, Chrono
+pooling, Chrono-handler reuse, managed-tick relevancy filtering, and
+phase-triggered GC; they already leave Chrono's single-thread sync disabled.
+Actor-pool warming is compiled off. A one-factor profile now enables only that
+flag and is held behind startup, memory, and matched late-PvP hitch-tail gates.
+This is a spawn-stutter hypothesis, not a credited FPS improvement.
+
+One candidate/control cold-boot pair cleared the first two gates. The candidate
+startup log attested the exact one-line CVar push. Three post-ready samples per
+variant found only −0.006% RSS and −0.026% PSS differences; boot time was also
+inside run noise. Actor-pool warming therefore remains eligible for a real
+late-PvP hitch-tail screen, but is neither promoted nor credited with FPS.
+
+A provenance check found that the first particle audit had decoded addresses
+from a `libUnreal.so` whose hash did not match the library mapped by the live
+game. The names happened to be identical, but code and data offsets were not.
+The audit was repeated against the hash-verified live image and now shows
+`FX.AllowAsyncTick=1` and `FX.BatchAsync=32`. Direct reads from the control
+process returned the same values. The apparent `FX.AllowAsyncTick=1` candidate
+was therefore a no-op and has been removed from the campaign queue.
+
+Its previous crash-free cold boot remains useful as a warning about method:
+the DeviceProfile log proved that the line was pushed, not that the effective
+value changed. The startup artifact now records the no-op resolution. The same
+live-storage method independently confirmed drag tickless at zero in control,
+so that candidate remains a real one-factor change rather than being discarded
+by association.
+
+A second live read after booting the drag profile returned one from the same
+hash-matched storage while the particle values stayed at their control values.
+This proves runtime isolation (`0 -> 1`) beyond startup logging. Promotion is
+still blocked on board/bench/item drag correctness and matched late-PvP data.
+
+The corrected library also showed that Niagara's main async tick, async
+sim-cache tick, GPU-tick batching, world object pool, component pool, and legacy
+particle pool are already live at one. Mesh draw dynamic instancing and parallel
+pass setup are compiled on as well. These enablement ideas were rejected as
+no-ops. One supported but unproven scheduling mode remains: changing Niagara
+`TickBatchMode` from 1 to 0 schedules the final batch as a task rather than
+running it inline. A one-factor profile was queued behind cold-start,
+effect-correctness, task-overhead, and matched late-PvP frame-tail gates.
+
+That candidate passed the non-combat gates: 17.65-second cold boot, empty crash
+buffer, unchanged tombstone inventory, and login-screen RSS/PSS within roughly
+1.2/0.8 MiB of a nearby control. Startup logging and a hash-checked live memory
+read both proved mode zero while adjacent async/batching controls stayed at one.
+The experiment remains unpromoted because login contains no representative
+Niagara batches and cannot reveal task overhead or missing/late combat effects.
+
+A broader late-PvP threading audit then decoded only the shipped, hash-matched
+binary rather than guessing at generic Unreal switches. Audio batching is
+already on with a batch size of 128. Parallel animation evaluation, update,
+interpolation, and physics blending are already on; forcing parallel animation
+would bypass asset and project opt-outs. Async component ticks and multithreaded
+mesh-command caching are also enabled. The disabled batched/concurrent core tick
+queue, async dispatch, and async cleanup switches were deliberately not queued:
+their ordering and task-overhead risk needs attribution from a real heavy-fight
+trace, which the expired login cannot supply.
+
+Two narrow non-noop scheduling experiments survived that filter. One moves
+eligible particle-system async scheduling earlier in the frame. The other raises
+Niagara system-simulation task batches from four to eight instances, testing
+whether fewer tasks improve the GameThread/RHIThread tail in effect-heavy fights.
+Both cold-booted in about 17.8 seconds, used no swap, produced no crash evidence
+or fresh tombstone, and stayed within the surrounding Performance Max login
+memory range. Startup logs attested the exact `0 -> 1` and `4 -> 8` transitions;
+a hash-checked live read independently returned batch size eight with adjacent
+async controls unchanged. They remain unpromoted because neither cold boot nor
+login measures particle workload, timing, legibility, or TFT FPS.
+
+The matched late-PvP summarizer was also tightened before any new authenticated
+data arrives. A variant must now contribute exactly one known DeviceProfile
+SHA-256 in every common stratum, and control/candidate hashes must differ. A
+fixture that reuses a candidate label for two profile binaries is explicitly
+rejected. This prevents a resumed or manually edited experiment from producing
+a convincing average out of different configurations.
+
+The observer now also accepts a campaign candidate ID and resolves its variant,
+profile path, and SHA-256 directly from the manifest. `--print-selection`
+attests that mapping without touching ADB, and unknown IDs fail early. This
+removes a manual profile/label mismatch from the next authenticated session.
+The same manifest initially stored a six-item, hash-pinned late-PvP priority
+queue, which the observer can print without contacting the emulator. It orders
+work by existing attribution and synthetic/cold evidence rather than manifest
+position; the animation-budget candidate added below later expands it to seven.
+
+The same binary audit revisited the largest named stage-1-8 CPU consumer,
+RHIThread. Performance Max currently forces `r.RHICmdBypass=1`, although the
+compiled default is zero and OpenGL RHI threading, parallel translation, and
+cached mesh draw commands are already enabled. The compiled translate batch is
+256 commands and the minimum parallel command-list threshold is 64 draws. An
+isolated profile now restores bypass zero to test whether effect-heavy player
+combat can distribute command construction better. Its cold control pair was
+memory/startup-neutral and crash-free, so it remains queued. Login cannot
+decide the tradeoff: the next authenticated screen must compare RHIThread and
+RenderThread work plus FPS/p95/p99 under the same late-PvP strata.
+
+A neighboring renderer audit found one more bounded scheduling threshold.
+`r.GPUScene.ParallelUpdate` is compiled at 2,048 updated items; the shipped help
+defines positive values as the item-count threshold for parallel primitive and
+instance updates. Lowering only that threshold to 512 passed a consecutive cold
+pair with essentially identical memory, no swap, no crash, and no new
+tombstone. Startup attested `2048 -> 512`. Broader enablement was not queued:
+Niagara GDME, visibility task scheduling, and translucent rendering are already
+parallel. The threshold remains unpromoted because an expired-login screen
+cannot supply a dense GPU Scene or any TFT FPS evidence.
+
+The Riot-specific pass also closed four tempting dead ends. Delayed Chrono
+start, median frame-alignment compensation, single reconstruction of a repeated
+remote move, and transform preservation during an empty replicated-movement
+blend are all compiled on. Their embedded help describes hitch/pacing or
+movement-correctness behavior, but enabling them in a profile would be a no-op.
+The exact defaults and constructor evidence were added to
+[`artifacts/tft-runtime-boolean-default-audit-20260815.json`](../artifacts/tft-runtime-boolean-default-audit-20260815.json).
+
+Finally, both generic visibility work-size controls were decoded as zero, which
+their embedded help defines as automatic frustum-task and relevance-packet
+sizing. Forcing a primitive count would replace engine adaptation without a
+late trace. The remaining 256-primitive parallel-gather control applies only
+when shadow-octree culling is disabled and is not justified for the low-shadow
+profile. These were recorded as rejected fixed-threshold experiments rather
+than added to the queue.
+
+The adjacent GPU Scene allocation controls were likewise bounded. Light setup
+is already asynchronous; grow-only allocation is a deprecated compatibility
+mode that prevents buffers from shrinking; and the default negative tile size
+avoids reserved-resource assumptions on Android/gfxstream. Raising the 256,000
+byte pooled-upload ceiling would retain larger buffers, while the heavy proxy
+does not attribute enough cost to GPU Scene allocation to justify that trade.
+No allocation candidate was added.
+
+An authentication-independent UBO microbenchmark then exercised four update
+strategies on the attested guest ANGLE→Vulkan path. The 13-run campaign used
+seven alternating `glBufferSubData` controls and two independent brackets per
+candidate. Mapping and filling a whole aligned pool once per frame repeated a
+large win in both blocks (−33.63% median, −30.54% p95 time per draw). Mapping
+once per draw was mixed and below the promotion threshold; calling subdata and
+rebinding a pool for every draw was catastrophically slower. The result moves
+the already-isolated 16 MiB Unreal UBO-pool profile to the front of the next
+authenticated late-PvP queue, but it is not promoted: the synthetic app cannot
+prove Unreal's internal allocation path, game visual correctness, or TFT FPS.
+The app source, runner, alternating-bracket summarizer, and curated result are
+kept as hash-checked evidence.
+
+The winning strategy was then repeated under higher synthetic draw density.
+Alternating five-run screens at 512 and a bounded 1024 draws per frame produced
+four more wins: the 512-draw blocks averaged −48.99% median / −48.08% p95 time
+per draw, and the 1024-draw blocks averaged −53.13% / −52.44%. All retained
+runs reported zero GLES errors. Together with the two original 256-draw blocks,
+map-once wins six of six independent brackets. An earlier long 1024-draw
+attempt produced no summary after the outer launcher watchdog closed the AVD
+and is explicitly excluded. This improves hypothesis ranking only; it neither
+measures TFT FPS nor proves Unreal path equivalence or combat visual
+correctness. The curated result is
+[`artifacts/android-gles-ubo-density-screen-20260815.json`](../artifacts/android-gles-ubo-density-screen-20260815.json).
+
+The corresponding capacity audit found a much narrower synthetic footprint
+than the candidate name suggests. With 16-byte alignment and a 32-byte stride,
+the 256/512/1024-draw screens allocate only 8/16/32 KiB per synthetic frame.
+Thus 16 MiB is 512× the largest measured working set. Exact-binary inspection
+confirmed GL uniform-buffer allocation code and runtime storage confirmed the
+configured capacity, but neither reveals the live late-PvP high-water mark.
+The queue retains the candidate on strategy evidence while labelling capacity
+`unsized_hypothesis`; no speculative 4 MiB profile was added. If 16 MiB first
+wins authenticated combat tails and correctness gates, a later 4/8/16 MiB
+ladder can find the smallest sufficient capacity. Evidence is in
+[`artifacts/unreal-opengl-ubo-capacity-sizing-audit-20260815.json`](../artifacts/unreal-opengl-ubo-capacity-sizing-audit-20260815.json).
+
+The three original simpleperf reports were also re-opened at their pinned
+hashes. The Performance Max control's 31.49% RHIThread share contains 16.44%
+transport leaves but only 1.60% stripped Unreal leaf offsets. Neither it nor
+the inline and 32 KiB reports contains an exclusive row in the exact-binary
+OpenGL buffer/UBO corridor. Because the reports are flattened, this cannot
+exclude a UBO caller above a transport leaf; it does prevent relabelling all
+RHIThread samples as UBO work. No candidate was promoted or demoted. The
+late-PvP observer now pulls and hashes raw perf data so the next authenticated
+capture preserves call chains. The bounded conclusion is in
+[`artifacts/simpleperf-rhi-unreal-offset-audit-20260815.json`](../artifacts/simpleperf-rhi-unreal-offset-audit-20260815.json).
+
+To isolate a possible ASG-specific artifact, the 512-draw five-run bracket was
+repeated on stock `pipe` with the same OSFT/ANGLE flags and workload. Map-once
+again won both blocks (−47.33% median / −50.18% p95 on average), bringing the
+retained strategy record to eight wins in eight brackets. This supports a
+transport-independent UBO update-cost hypothesis, but it is not a transport
+benchmark: pipe and ASG ran in separate cold launches, so their absolute times
+are not compared and the selected transport is unchanged. The cross-check is
+[`artifacts/android-gles-ubo-transport-crosscheck-20260815.json`](../artifacts/android-gles-ubo-transport-crosscheck-20260815.json).
+
+After the synthetic campaign, a cold stock launch recovered the interrupted
+profile journal before starting TFT. The live stock process saw the original
+base APK, no private `DeviceProfiles.ini`, zero base/profile bind mounts, the
+stable profile over `pipe`, no transaction markers, and an empty crash buffer.
+The intentional shutdown left zero ADB devices, emulator processes, or AVD
+locks, while both persisted transport configs remained `pipe`. This final
+rollback attestation is retained in
+[`artifacts/stock-rollback-validation-20260815.json`](../artifacts/stock-rollback-validation-20260815.json).
+
 The campaign entrypoint is
 [`scripts/run-performance-campaign.command`](../scripts/run-performance-campaign.command);
 candidates are declared in
-[`scripts/performance-candidates.json`](../scripts/performance-candidates.json).
+[`scripts/performance-candidates.json`](../scripts/performance-candidates.json),
+and the passive observer is
+[`scripts/capture-late-pvp-session.command`](../scripts/capture-late-pvp-session.command).
+The observer now fails closed unless the selected profile SHA-256 is also the
+single live TFT `DeviceProfiles.ini` bind mount; successful session manifests
+retain the PID, destination, mount count, and active hash. This closes the gap
+between selecting a candidate on the host and measuring the profile that the
+game process actually sees. Because a passive session may run for 90 minutes,
+the observer repeats the PID, SHA-256, and single-mount check immediately before
+and after every pacing window. One fixture swaps the active hash after the
+initial preflight and proves collection stops before the frame helper; another
+swaps it only after the helper returns and proves the written summary receives
+no acceptance marker, never enters the aggregate, and cannot start profiling.
+The matched-session summarizer independently requires that successful live
+attestation in every manifest and rejects any capture whose profile hash differs
+from the manifest, so hand-edited or legacy unattested directories cannot enter
+an A/B result.
+It also makes the reported game version and active base-APK SHA-256 part of the
+exact stratum key. A negative fixture changes both fields in one otherwise
+matching candidate session and proves that the round is not pooled across Riot
+patches; captures missing either attestation are ineligible.
+Host conditions are now bracketed as well: power source, the mode in the active
+AC or battery section, and thermal state are sampled before and after each FPS
+window. The summarizer admits only exact stable pairs and has a negative fixture
+for a mid-window host-condition transition.
+
+A final Riot-specific audio pass found two shipped but disabled controls:
+playing music only for the current arena and restricting simultaneous ambient
+sounds. Neither was queued. Both intentionally change audio presentation, and
+the earlier full audio-off screen was neutral/slower; they should be revisited
+only if a real late-PvP profile attributes material frame time or run-queue
+delay to AudioMixer. Their exact defaults and constructor evidence are retained
+in the Riot boolean-default audit.
+
+The hash-pinned late-PvP priority queue now includes the existing isolated
+`a.Budget.BudgetMs=1.0` profile immediately after the two RHI hypotheses. It is
+more directly coupled to a dense late board than the remaining scheduling
+experiments: Riot already enables the significance-aware allocator, while a
+later saved-settings pass otherwise raises its low-quality budget to 1.85 ms.
+This is prioritization only, not promotion; unit animation cadence and attack
+or spell timing remain mandatory correctness gates.
+
+A final skeletal-render hot-path audit ruled out another family of apparent
+late-board wins. The shipped binary already enables local-bounds caching,
+high-priority skinned ticks, asynchronous skin-buffer updates, cached skeletal
+mesh draw commands, the parallel skeletal updater, and the SkeletalMesh render
+command pipe. Its dynamic-data pool is also enabled with a 4 MiB budget.
+Together with the already-proven parallel animation evaluation/update/
+interpolation and physics blend defaults, these are no-op enablement ideas.
+Raising the pool without live miss/allocation evidence would merely trade
+retained memory for a hypothetical hitch reduction, so no candidate was added.
+Exact registration/default evidence is in
+[`artifacts/unreal-skeletal-hot-path-audit-20260815.json`](../artifacts/unreal-skeletal-hot-path-audit-20260815.json).
+
+The uniform-expression and render-command-pipe follow-up also rejected only
+no-ops: the three audited material-cache paths, all declared render-command
+pipes, and Niagara dynamic-data piping are already enabled. The
+Vulkan-specific upload control is enabled but is not an OpenGL RHI switch. A
+runtime lookup for `r.UniformBufferPooling` was not promoted into an invented
+compiled default. The RHI command-list and OpenGL UBO capacity candidates
+therefore keep their existing rankings, but neither gains FPS credit from this
+static audit. Evidence is in
+[`artifacts/unreal-uniform-command-pipeline-audit-20260815.json`](../artifacts/unreal-uniform-command-pipeline-audit-20260815.json).
+
+An isolated runtime query then resolved the static unknown without inventing a
+compiled default. A profile containing only `r.UniformBufferPooling=1` logged
+`1 -> 1`, so general Unreal uniform-buffer pooling is already effective. It is
+a rejected no-op, not another candidate. The queued OpenGL UBO profile remains
+the single capacity change `0 -> 16777216`; this makes the synthetic pooling
+result more mechanically relevant while still requiring authenticated
+late-PvP validation. The AVD was returned to zero devices/processes, no lock,
+and pipe transport. See
+[`artifacts/unreal-uniform-buffer-pooling-runtime-audit-20260815.json`](../artifacts/unreal-uniform-buffer-pooling-runtime-audit-20260815.json).
+
+The animation-budget policy itself was decoded end to end rather than adding
+more interacting knobs. Twenty-one exact compiled values cover time allocation,
+interpolation, offscreen ticking, smoothing, reduction thresholds, throttles,
+and significance. The direct budget is compiled at 1.0 ms, low view scalability
+raises it to 1.5 ms, and saved settings later raise it again to 1.85 ms. The
+queued profile changes only that value back to 1.0 ms and its lower-priority
+override was already proven blocked at startup. Tightening max tick rate,
+interpolation, offscreen, minimum-quality, or significance behavior would
+confound the test and alter unit cadence/visibility semantics, so those controls
+were not queued. This supports the existing priority-three ranking without
+promoting it. The policy audit is
+[`artifacts/unreal-animation-budget-policy-audit-20260815.json`](../artifacts/unreal-animation-budget-policy-audit-20260815.json).
 
 ## Historical and rejected findings
 

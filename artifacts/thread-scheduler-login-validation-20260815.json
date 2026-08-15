@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "purpose": "validate procfs thread-scheduler capture and reject redundant critical-thread priority tuning",
+  "environment": {
+    "client": "TFT PBE 18.1.0-5300314",
+    "screen": "expired-session login screen",
+    "renderer": "stock TFT OpenGL ES -> ANGLE -> Vulkan -> Metal",
+    "display": "1600x900@260",
+    "note": "This is an instrumentation validation, not the selected Performance Max profile and not an FPS benchmark."
+  },
+  "source": {
+    "before_snapshot_sha256": "7e791951c174e23cbc8031e39b21a78af568ba3b5e98dfd09b47061f37d6a593",
+    "after_snapshot_sha256": "ac3df9646c3589c5fd9feae6ef4bc79ae31af7197eea0f2a2ae3ca6ccc10ee93",
+    "comparison_sha256": "0f8202d8b5b1bcb3cf55af0ba2fc3ee3bcbaea5c93f1018a0ae56ed51ff089b4",
+    "raw_snapshots_embedded": false
+  },
+  "window": {
+    "elapsed_ms": 8000,
+    "clock_ticks_per_second": 100,
+    "before_threads": 120,
+    "after_threads": 120,
+    "matched_nonnegative_threads": 120
+  },
+  "totals": {
+    "delta_cpu_ms": 4750,
+    "delta_runtime_ms": 4754.00488,
+    "delta_runqueue_wait_ms": 2857.948311,
+    "delta_timeslices": 26840
+  },
+  "critical_roles": [
+    {
+      "role": "RHIThread",
+      "delta_cpu_ms": 2030,
+      "delta_runtime_ms": 2033.493963,
+      "delta_runqueue_wait_ms": 306.148169,
+      "runqueue_wait_percent": 13.08525627969842,
+      "priority": 10,
+      "nice": -10
+    },
+    {
+      "role": "GameThread",
+      "delta_cpu_ms": 1200,
+      "delta_runtime_ms": 1199.552761,
+      "delta_runqueue_wait_ms": 120.830882,
+      "runqueue_wait_percent": 9.151195006132017,
+      "priority": 10,
+      "nice": -10
+    },
+    {
+      "role": "RenderThread",
+      "delta_cpu_ms": 460,
+      "delta_runtime_ms": 458.286801,
+      "delta_runqueue_wait_ms": 184.696909,
+      "runqueue_wait_percent": 28.724974852006753,
+      "priority": 10,
+      "nice": -10
+    },
+    {
+      "role": "TaskGraphWorkers",
+      "delta_cpu_ms": 390,
+      "delta_runtime_ms": 393.184024,
+      "delta_runqueue_wait_ms": 721.610889,
+      "runqueue_wait_percent": 64.73037153157514,
+      "representative_priority": 10,
+      "representative_nice": -10
+    }
+  ],
+  "decisions": {
+    "profiler_android_compatibility": "pass",
+    "critical_thread_priority_boost": "reject_noop_already_nice_minus_10",
+    "runqueue_interpretation": "diagnostic_only_until_captured_inside_semantically_valid_late_pvp",
+    "fps_gain_claimed": false
+  }
+}

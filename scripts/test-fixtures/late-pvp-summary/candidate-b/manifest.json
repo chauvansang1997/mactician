@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "mode": "passive_late_pvp",
+  "capture": {
+    "variant": "candidate",
+    "profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "active_profile_attestation": {"passed": true, "process_pid": 2002, "mount_count": 1, "sha256": "2222222222222222222222222222222222222222222222222222222222222222"}
+  }
+}

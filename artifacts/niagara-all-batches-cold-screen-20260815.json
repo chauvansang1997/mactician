@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "candidate": "fx.Niagara.SystemSimulation.TickBatchMode=0",
+  "environment": {
+    "client": "TFT PBE 18.1.0-5300314",
+    "display": "2560x1440@416",
+    "renderer": "Unreal OpenGL ES -> guest ANGLE -> Vulkan -> gfxstream -> MoltenVK -> Metal",
+    "asg_write_step_bytes": 16384,
+    "angle_disabled_features": ["preferSubmitAtFBOBoundary"],
+    "screen": "expired-session login screen"
+  },
+  "run": {
+    "profile_sha256": "7e411bb6c2a5bf18866d3864aa33185d8803ab25b24339ccca6177b039cc8f92",
+    "emulator_boot_ms": 17649,
+    "tft_pid": 2697,
+    "thread_count": 120,
+    "rss_kib": 970524,
+    "pss_kib": 815776,
+    "swap_kib": 0,
+    "crash_buffer_lines": 0,
+    "tombstone_file_count": 12,
+    "startup_cvar_attested": true,
+    "runtime_cvar_attested": true
+  },
+  "nearby_control_reference": {
+    "artifact": "artifacts/actor-pool-warming-cold-screen-20260815.json",
+    "mean_rss_kib": 969381.3333333334,
+    "mean_pss_kib": 815027.3333333334,
+    "note": "not a newly interleaved control; used only as a directional rejection threshold"
+  },
+  "decision": {
+    "startup_compatible": true,
+    "login_screen_memory_gate": "pass_directionally_neutral",
+    "fps_gain_claimed": false,
+    "promoted": false,
+    "next_gate": "matched late-PvP frame tails, task overhead, crashes, and effect correctness"
+  }
+}

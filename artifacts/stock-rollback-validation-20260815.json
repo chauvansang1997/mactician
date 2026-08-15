@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "kind": "stock_rollback_validation",
+  "generated_utc": "2026-08-15T04:40:00Z",
+  "purpose": "Prove that the final cold stock launch recovered interrupted profile state and left no experimental AVD state active.",
+  "launch": {
+    "renderer": "angle",
+    "graphics_profile": "stable",
+    "overlay_requested": false,
+    "cold_boot": true,
+    "pre_boot_config_transport": "pipe",
+    "pre_boot_generated_transport": "pipe",
+    "recovery_message": "The temporary guest DeviceProfiles.ini was removed after an interrupted launch."
+  },
+  "live_attestation": {
+    "tft_pid_positive": true,
+    "installed_base_apk_sha256": "3afbfa3dedabf8e75b79c64a06c469376ee79edce67fdd687ca4fb47f704c35a",
+    "expected_original_base_apk_sha256": "3afbfa3dedabf8e75b79c64a06c469376ee79edce67fdd687ca4fb47f704c35a",
+    "device_profile_present": false,
+    "device_profile_mount_count": 0,
+    "base_apk_mount_count": 0,
+    "angle_profile_transaction_markers": 0,
+    "direct_vulkan_profile_transaction_markers": 0,
+    "boot_transport": "pipe",
+    "boot_graphics_profile": "stable",
+    "crash_buffer_lines": 0,
+    "tombstone_files": 12
+  },
+  "shutdown_attestation": {
+    "intentional_interrupt_exit_code": 130,
+    "adb_devices": 0,
+    "emulator_processes": 0,
+    "avd_lock_present": false,
+    "post_shutdown_config_transport": "pipe",
+    "post_shutdown_generated_transport": "pipe",
+    "note": "ADB disconnected during emulator shutdown before the transient debug.hwui.renderer property could be restored; no VM remains, and a cold boot recreates the runtime property.",
+    "repeat_after_pipe_crosscheck": {
+      "adb_devices": 0,
+      "emulator_processes": 0,
+      "avd_lock_present": false,
+      "config_transport": "pipe",
+      "generated_transport": "pipe"
+    }
+  },
+  "decision": {
+    "rollback_verified": true,
+    "experimental_mounts_active": false,
+    "experimental_avd_process_active": false
+  }
+}

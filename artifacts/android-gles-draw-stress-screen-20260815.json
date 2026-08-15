@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "captured_utc": "2026-08-15T00:33:26Z",
+  "purpose": "Authentication-independent screening of ANGLE Vulkan candidates with a draw-call, UBO-update, and render-target workload closer to a crowded TFT battle than Android UI animation.",
+  "renderer_path": "Android GLES 3 -> guest ANGLE -> Vulkan ranchu/gfxstream -> MoltenVK -> Metal",
+  "attestation_requirements": {
+    "renderer_contains": [
+      "ANGLE",
+      "Vulkan"
+    ],
+    "mapped_libraries": [
+      "libGLESv2_angle.so",
+      "vulkan.ranchu.so"
+    ],
+    "forbidden_gl_errors": true,
+    "verified_rollback": true
+  },
+  "probe": {
+    "apk_sha256": "303a9c94bb7c8c33c48aa57916fa7df5533cdd19e8678ec8ebf1addf4bfa41fd",
+    "manifest_sha256": "76bc73f65f8f47c7a7095efc8e84c7c611aa6184692cda81939fb9ae2dce58f7",
+    "activity_source_sha256": "362a04e4dafe1bbbd0671130ee4344638426b475e3ec6aa715ab4e741a9afa56",
+    "build_tools_revision": "36.0.0",
+    "android_platform": "android-36",
+    "build_tools_archive_sha1": "199ae004f6f7ca98b6eae358f0bdb1e3c34271d1",
+    "platform_archive_sha1": "2c1a80af613b76af27e3ffbe5c1e0b92a3443a75"
+  },
+  "workload": {
+    "rounds": 20,
+    "discarded_warmup_rounds": 7,
+    "measured_rounds": 13,
+    "frames_per_round": 120,
+    "draws_per_frame": 256,
+    "blits_per_frame": 1,
+    "total_draw_calls_per_round": 30840,
+    "render_target_size": 512,
+    "per_draw_ubo_bytes": 32,
+    "operations": [
+      "per-draw glBufferSubData",
+      "triangle draw",
+      "buffer, framebuffer, and texture-fetch memory barriers",
+      "ping-pong RGBA8 framebuffer render and texture sample",
+      "one glFinish per synthetic frame"
+    ]
+  },
+  "campaign": {
+    "utc_start": "20260815T002210Z",
+    "mode": "interleaved cold boot",
+    "successful_runs": 11,
+    "failed_runs": 0,
+    "queue_completed": true,
+    "emulator_stopped_after_campaign": true,
+    "avd_transaction_markers_absent": true
+  },
+  "runs": [
+    {
+      "utc": "20260815T002249Z",
+      "candidate": "control",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6641.702,
+      "p95_ns_per_draw": 6905.279,
+      "median_draws_per_second": 150563.821,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002349Z",
+      "candidate": "preferCPUForBufferSubData",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferCPUForBufferSubData",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6657.332,
+      "p95_ns_per_draw": 6960.596,
+      "median_draws_per_second": 150210.320,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002449Z",
+      "candidate": "preferAggregateBarrierCalls",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferAggregateBarrierCalls",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6584.628,
+      "p95_ns_per_draw": 7028.424,
+      "median_draws_per_second": 151868.876,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002550Z",
+      "candidate": "disable-useVkEventForImageBarrier",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary:useVkEventForImageBarrier",
+      "median_ns_per_draw": 6545.920,
+      "p95_ns_per_draw": 6922.230,
+      "median_draws_per_second": 152766.919,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002650Z",
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary:useVkEventForBufferBarrier",
+      "median_ns_per_draw": 6537.989,
+      "p95_ns_per_draw": 7226.589,
+      "median_draws_per_second": 152952.229,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002750Z",
+      "candidate": "control",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6519.863,
+      "p95_ns_per_draw": 6943.349,
+      "median_draws_per_second": 153377.450,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002850Z",
+      "candidate": "preferCPUForBufferSubData",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferCPUForBufferSubData",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6930.052,
+      "p95_ns_per_draw": 8153.981,
+      "median_draws_per_second": 144299.069,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T002951Z",
+      "candidate": "preferAggregateBarrierCalls",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferAggregateBarrierCalls",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6414.733,
+      "p95_ns_per_draw": 6751.601,
+      "median_draws_per_second": 155891.126,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T003052Z",
+      "candidate": "disable-useVkEventForImageBarrier",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary:useVkEventForImageBarrier",
+      "median_ns_per_draw": 6348.499,
+      "p95_ns_per_draw": 7065.467,
+      "median_draws_per_second": 157517.550,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T003151Z",
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary:useVkEventForBufferBarrier",
+      "median_ns_per_draw": 6519.081,
+      "p95_ns_per_draw": 7131.417,
+      "median_draws_per_second": 153395.854,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    },
+    {
+      "utc": "20260815T003252Z",
+      "candidate": "control",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_draw": 6523.866,
+      "p95_ns_per_draw": 6904.289,
+      "median_draws_per_second": 153283.333,
+      "gl_error_rounds": 0,
+      "rollback_verified": true
+    }
+  ],
+  "control_blocks": [
+    {
+      "candidate_block": 1,
+      "start_control_utc": "20260815T002249Z",
+      "end_control_utc": "20260815T002750Z",
+      "mean_control_median_ns_per_draw": 6580.7825,
+      "mean_control_p95_ns_per_draw": 6924.3140
+    },
+    {
+      "candidate_block": 2,
+      "start_control_utc": "20260815T002750Z",
+      "end_control_utc": "20260815T003252Z",
+      "mean_control_median_ns_per_draw": 6521.8645,
+      "mean_control_p95_ns_per_draw": 6923.8190
+    }
+  ],
+  "comparisons": [
+    {
+      "candidate": "preferCPUForBufferSubData",
+      "block_median_time_changes_percent": [
+        1.1632,
+        6.2588
+      ],
+      "mean_median_time_change_percent": 3.7110,
+      "block_p95_time_changes_percent": [
+        0.5240,
+        17.7671
+      ],
+      "mean_p95_time_change_percent": 9.1455,
+      "decision": "rejected_slower"
+    },
+    {
+      "candidate": "preferAggregateBarrierCalls",
+      "block_median_time_changes_percent": [
+        0.0584,
+        -1.6427
+      ],
+      "mean_median_time_change_percent": -0.7921,
+      "block_p95_time_changes_percent": [
+        1.5035,
+        -2.4873
+      ],
+      "mean_p95_time_change_percent": -0.4919,
+      "decision": "neutral_below_promotion_threshold"
+    },
+    {
+      "candidate": "disable-useVkEventForImageBarrier",
+      "block_median_time_changes_percent": [
+        -0.5298,
+        -2.6582
+      ],
+      "mean_median_time_change_percent": -1.5940,
+      "block_p95_time_changes_percent": [
+        -0.0301,
+        2.0458
+      ],
+      "mean_p95_time_change_percent": 1.0079,
+      "decision": "neutral_below_threshold_with_worse_tail"
+    },
+    {
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "block_median_time_changes_percent": [
+        -0.6503,
+        -0.0427
+      ],
+      "mean_median_time_change_percent": -0.3465,
+      "block_p95_time_changes_percent": [
+        4.3654,
+        2.9983
+      ],
+      "mean_p95_time_change_percent": 3.6819,
+      "decision": "rejected_tail_regression"
+    }
+  ],
+  "promotion_policy": {
+    "minimum_median_improvement_percent": 3,
+    "maximum_p95_regression_percent": 5,
+    "promoted_candidates": []
+  },
+  "excluded_pilot": {
+    "utc": "20260815T001951Z",
+    "workload": {
+      "rounds": 5,
+      "warmup_rounds": 2,
+      "measured_rounds": 3,
+      "frames_per_round": 30,
+      "draws_per_frame": 128
+    },
+    "reason": "Only three measured short rounds; retained as functional validation but excluded from performance comparison."
+  },
+  "limitations": [
+    "The workload models draw submission, per-draw UBO updates, barriers, and render-target transitions but not TFT simulation, animation, Niagara content, shader diversity, or overdraw.",
+    "Synthetic evidence can reject transport candidates and prevent false promotion; it cannot replace matched late-PvP pacing and visual validation.",
+    "Riot authentication was unavailable, so no candidate affecting Unreal content or scheduling was promoted."
+  ]
+}

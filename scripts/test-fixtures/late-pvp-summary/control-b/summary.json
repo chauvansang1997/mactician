@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "accepted_captures": 1,
+  "captures": [
+    {
+      "variant": "control",
+      "semantic_gate": {
+        "stage_before": "5-1",
+        "stage_after": "5-1",
+        "phase_before": "combat",
+        "phase_after": "combat",
+        "valid": true
+      },
+      "device": {"version_name": "18.1.5300314", "display": "Physical size: 2560x1440", "density": "Physical density: 416"},
+      "graphics": {"renderer": "angle-opengl", "guest_gl_driver": "angle", "active_apk_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111"},
+      "host": {"stable": true, "power_source": "AC Power", "power_mode": "Automatic", "thermal_state": "nominal"},
+      "pacing": {"fps": 16, "p95_ms": 60, "p99_ms": 80, "frames_over_ms": {"50": 12}}
+    }
+  ]
+}

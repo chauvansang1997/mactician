@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "kind": "android_gles_ubo_density_screen",
+  "generated_utc": "2026-08-15T04:33:04Z",
+  "purpose": "Check whether the pooled map-once UBO result survives higher draw density on the attested guest ANGLE to Vulkan path.",
+  "limitations": [
+    "This synthetic workload is not a TFT FPS measurement.",
+    "It does not prove that Unreal uses the same allocation and update path.",
+    "It does not cover TFT visual correctness, stability, or late-PvP frame tails."
+  ],
+  "probe": {
+    "apk_sha256": "b8833ca128055438d0f70d50bf79564d5f9c18e051be09b30cd2db515a9071c8",
+    "manifest_sha256": "6b46a3d18ebd39cf0865d281edf542fe8d12780652ff6c65706cb4f23c9b00ad",
+    "activity_source_sha256": "ec1f074e2d1ce10c87fea872252b75a4a48cd80be38235c7ba445be6885aa754"
+  },
+  "runtime": {
+    "graphics_profile": "osft",
+    "transport": "virtio-gpu-asg",
+    "angle_features": {
+      "enabled": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled": "preferSubmitAtFBOBoundary"
+    },
+    "renderer": "ANGLE (Apple, Vulkan 1.3.0 (Apple M1 Max (0x1A050207)), Apple-0.2.2208)",
+    "ubo_alignment": 16,
+    "ubo_stride": 32
+  },
+  "methodology": {
+    "candidate_mode": "pooled_map_once",
+    "control_mode": "single_subdata",
+    "sequence": "control-candidate-control-candidate-control",
+    "comparison": "Each candidate is compared with the arithmetic mean of its immediately adjacent controls.",
+    "success_gate": "Zero GL-error rounds and candidate lower than its bracketed control for median and p95 time per draw."
+  },
+  "campaigns": [
+    {
+      "name": "density-512",
+      "workload": {
+        "rounds": 15,
+        "warmup_rounds": 5,
+        "measured_rounds": 10,
+        "frames": 120,
+        "draws_per_frame": 512,
+        "total_draw_calls_per_round": 61440,
+        "render_target_size": 512
+      },
+      "campaign": {
+        "successful_runs": 5,
+        "control_runs": 3,
+        "candidate_runs": 2,
+        "failed_runs": 0,
+        "alternating_bracket_design": true,
+        "gl_error_rounds": 0
+      },
+      "runs": [
+        {
+          "label": "density512-control-0",
+          "mode": "single_subdata",
+          "median_ns_per_draw": 5333.702,
+          "p95_ns_per_draw": 5522.631
+        },
+        {
+          "label": "density512-pool-0",
+          "mode": "pooled_map_once",
+          "median_ns_per_draw": 2912.493,
+          "p95_ns_per_draw": 3277.4
+        },
+        {
+          "label": "density512-control-1",
+          "mode": "single_subdata",
+          "median_ns_per_draw": 5739.109,
+          "p95_ns_per_draw": 6250.495
+        },
+        {
+          "label": "density512-pool-1",
+          "mode": "pooled_map_once",
+          "median_ns_per_draw": 2823.989,
+          "p95_ns_per_draw": 2907.722
+        },
+        {
+          "label": "density512-control-2",
+          "mode": "single_subdata",
+          "median_ns_per_draw": 5693.042,
+          "p95_ns_per_draw": 5825.61
+        }
+      ],
+      "bracket_deltas": [
+        {
+          "median_percent": -47.393791874529434,
+          "p95_percent": -44.32404783572349,
+          "decision": "synthetic_faster"
+        },
+        {
+          "median_percent": -50.59566655478922,
+          "p95_percent": -51.843379963986735,
+          "decision": "synthetic_faster"
+        }
+      ],
+      "mean_delta": {
+        "median_percent": -48.99472921465933,
+        "p95_percent": -48.08371389985511
+      }
+    },
+    {
+      "name": "density-1024-bounded",
+      "workload": {
+        "rounds": 8,
+        "warmup_rounds": 2,
+        "measured_rounds": 6,
+        "frames": 30,
+        "draws_per_frame": 1024,
+        "total_draw_calls_per_round": 30720,
+        "render_target_size": 512
+      },
+      "campaign": {
+        "successful_runs": 5,
+        "control_runs": 3,
+        "candidate_runs": 2,
+        "failed_runs": 0,
+        "alternating_bracket_design": true,
+        "gl_error_rounds": 0
+      },
+      "runs": [
+        {
+          "label": "density1024b-control-0",
+          "mode": "single_subdata",
+          "median_ns_per_draw": 4499.447,
+          "p95_ns_per_draw": 4606.769
+        },
+        {
+          "label": "density1024b-pool-0",
+          "mode": "pooled_map_once",
+          "median_ns_per_draw": 2137.016,
+          "p95_ns_per_draw": 2237.211
+        },
+        {
+          "label": "density1024b-control-1",
+          "mode": "single_subdata",
+          "median_ns_per_draw": 4518.905,
+          "p95_ns_per_draw": 4624.759
+        },
+        {
+          "label": "density1024b-pool-1",
+          "mode": "pooled_map_once",
+          "median_ns_per_draw": 2041.397,
+          "p95_ns_per_draw": 2134.494
+        },
+        {
+          "label": "density1024b-control-2",
+          "mode": "single_subdata",
+          "median_ns_per_draw": 4291.962,
+          "p95_ns_per_draw": 4525.925
+        }
+      ],
+      "bracket_deltas": [
+        {
+          "median_percent": -52.607394344332526,
+          "p95_percent": -51.53107914529427,
+          "decision": "synthetic_faster"
+        },
+        {
+          "median_percent": -53.66183600319923,
+          "p95_percent": -53.3478808797244,
+          "decision": "synthetic_faster"
+        }
+      ],
+      "mean_delta": {
+        "median_percent": -53.13461517376588,
+        "p95_percent": -52.439480012509335
+      }
+    }
+  ],
+  "excluded_attempts": [
+    {
+      "workload": {
+        "rounds": 15,
+        "frames": 120,
+        "draws_per_frame": 1024
+      },
+      "result": "no_summary_excluded",
+      "reason": "The outer launcher readiness watchdog closed the AVD after the probe force-stopped TFT; the attempt was interrupted at 180 seconds."
+    }
+  ],
+  "decision": {
+    "status": "prioritize_existing_ubo_pool_candidate_unpromoted",
+    "evidence": "Pooled map-once won all four high-density brackets and both earlier 256-draw brackets.",
+    "promotion": "none",
+    "reason": "Synthetic GLES timing is not TFT FPS, does not establish Unreal internal-path equivalence, and has no TFT visual-correctness result.",
+    "required_next": "Matched, profile-attested late-PvP Performance Max versus 16 MiB UBO-pool sessions with stable host conditions and visual-correctness gates."
+  }
+}

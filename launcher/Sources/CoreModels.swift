@@ -137,6 +137,7 @@ struct LaunchProfile: Codable, Equatable, Identifiable {
 enum EffectsQuality: String, CaseIterable, Identifiable {
     case high
     case performance
+    case maximum
 
     var id: String { rawValue }
 
@@ -146,6 +147,8 @@ enum EffectsQuality: String, CaseIterable, Identifiable {
             return LauncherL10n.text("effects_quality.high")
         case .performance:
             return LauncherL10n.text("effects_quality.performance")
+        case .maximum:
+            return LauncherL10n.text("effects_quality.maximum")
         }
     }
 
@@ -155,11 +158,18 @@ enum EffectsQuality: String, CaseIterable, Identifiable {
             return LauncherL10n.text("effects_quality.high.detail")
         case .performance:
             return LauncherL10n.text("effects_quality.performance.detail")
+        case .maximum:
+            return LauncherL10n.text("effects_quality.maximum.detail")
         }
     }
 
     var profileFilename: String {
-        "Android_Codex.DeviceProfiles.effects-\(rawValue).ini"
+        switch self {
+        case .high, .performance:
+            return "Android_Codex.DeviceProfiles.effects-\(rawValue).ini"
+        case .maximum:
+            return "Android_Codex.DeviceProfiles.performance-max.ini"
+        }
     }
 
     static func selection(saved: String?) -> EffectsQuality {

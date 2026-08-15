@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so copied from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false
+  },
+  "methodology": {
+    "name_lookup": "exact NUL-terminated UTF-16LE CVar name",
+    "xref": "AArch64 ADRP/ADD name references and the console-variable reference or integer constructor",
+    "default_decode": "file-backed referenced words use ELF PT_LOAD VMA mapping; constructor-local integer defaults use the final explicit stack store before registration",
+    "startup_cross_check": "TFT.log Set CVar records distinguish compiled defaults from Android/base-config overrides",
+    "scope": "capability and default audit only; no static value is performance or game-correctness evidence"
+  },
+  "observations": {
+    "audio": [
+      {
+        "cvar": "AudioThread.EnableBatchProcessing",
+        "registration_xref": "0x66d4af4",
+        "storage_vma": "0xb9f4954",
+        "compiled_value_u32": 1,
+        "help": "Enables batch processing audio thread commands."
+      },
+      {
+        "cvar": "AudioThread.BatchAsyncBatchSize",
+        "registration_xref": "0x66d4b24",
+        "storage_vma": "0xb9f4958",
+        "compiled_value_u32": 128,
+        "help": "Controls the number of audio commands grouped together for threading."
+      }
+    ],
+    "animation": [
+      {
+        "cvar": "a.ParallelAnimEvaluation",
+        "registration_xref": "0x67df110",
+        "compiled_value_u32": 1,
+        "evidence": "mov w28,#1 at 0x67ded68; str w28,[sp,#32] at 0x67df12c"
+      },
+      {
+        "cvar": "a.ParallelAnimUpdate",
+        "registration_xref": "0x67df14c",
+        "compiled_value_u32": 1,
+        "evidence": "mov w28,#1 at 0x67ded68; str w28,[sp,#32] at 0x67df168"
+      },
+      {
+        "cvar": "a.ForceParallelAnimUpdate",
+        "registration_xref": "0x67df188",
+        "compiled_value_u32": 0,
+        "evidence": "str wzr,[sp,#32] at 0x67df1a4",
+        "help": "Forces worker-thread animation updates regardless of project or animation-blueprint opt-out."
+      },
+      {
+        "cvar": "a.ParallelAnimInterpolation",
+        "registration_xref": "0x67df1c4",
+        "compiled_value_u32": 1,
+        "evidence": "mov w28,#1 at 0x67ded68; str w28,[sp,#32] at 0x67df1e0"
+      },
+      {
+        "cvar": "a.ParallelBlendPhysics",
+        "registration_xref": "0x6bec33c",
+        "compiled_value_u32": 1,
+        "evidence": "mov w25,#1 at 0x6bec100; str w25,[sp,#20] at 0x6bec358"
+      }
+    ],
+    "niagara_and_particles": [
+      {
+        "cvar": "FX.EarlyScheduleAsync",
+        "registration_xref": "0x6b4355c",
+        "compiled_value_u32": 0,
+        "evidence": "str wzr,[sp] at 0x6b43578",
+        "help": "Schedule particle-system components that can run asynchronously earlier in the frame."
+      },
+      {
+        "cvar": "FX.BatchAsyncBatchSize",
+        "registration_xref": "0x6b435dc",
+        "storage_vma": "0xb9f8bc0",
+        "compiled_value_u32": 32
+      },
+      {
+        "cvar": "fx.ParticleManagerAsyncBatchSize",
+        "registration_xref": "0x6b74ca0",
+        "storage_vma": "0xb9f8c0c",
+        "compiled_value_u32": 8
+      },
+      {
+        "cvar": "fx.Niagara.SystemSimulation.TickBatchSize",
+        "registration_xref": "0x72f571c",
+        "storage_vma": "0xb9fdb38",
+        "compiled_value_u32": 4,
+        "help": "Number of system instances processed per asynchronous task."
+      },
+      {
+        "cvar": "fx.Niagara.SystemSimulation.ConcurrentGPUTickInit",
+        "registration_xref": "0x72f577c",
+        "storage_vma": "0xb9fdb40",
+        "compiled_value_u32": 1,
+        "help": "Initialize GPU ticks in the system concurrent tick rather than on the game thread."
+      }
+    ],
+    "engine_tick": [
+      {
+        "cvar": "tick.AllowAsyncComponentTicks",
+        "registration_xref": "0x6dd1b78",
+        "compiled_value_u32": 1
+      },
+      {
+        "cvar": "tick.AllowBatchedTicks",
+        "registration_xref": "0x6dd1bac",
+        "compiled_value_u32": 0
+      },
+      {
+        "cvar": "tick.AllowConcurrentTickQueue",
+        "registration_xref": "0x6dd1c48",
+        "compiled_value_u32": 0,
+        "risk": "embedded help warns that it can change tick ordering"
+      },
+      {
+        "cvar": "tick.AllowAsyncTickDispatch",
+        "registration_xref": "0x6dd1c7c",
+        "compiled_value_u32": 0
+      },
+      {
+        "cvar": "tick.AllowAsyncTickCleanup",
+        "registration_xref": "0x6dd1cb0",
+        "compiled_value_u32": 0
+      }
+    ],
+    "mesh_draw": [
+      {
+        "cvar": "r.MeshDrawCommands.CacheMultithreaded",
+        "registration_xref": "0x5d2a86c",
+        "storage_vma": "0xb9f2f88",
+        "compiled_value_u32": 1
+      },
+      {
+        "cvar": "r.MeshDrawCommands.BatchSize",
+        "registration_xref": "0x5d2a8ac",
+        "storage_vma": "0xb9f2f8c",
+        "compiled_value_u32": 12
+      },
+      {
+        "cvar": "r.Visibility.DynamicMeshElements.Parallel",
+        "registration_xref": "0x6c55520",
+        "compiled_value_u32": 1,
+        "base_config_startup_value_u32": 0,
+        "interpretation": "The existing value-1 candidate is a real Android config override, not a compiled-default no-op."
+      }
+    ]
+  },
+  "decisions": {
+    "audio_batching": "reject_enablement_noop: batching is already compiled on with batch size 128; the prior audio-off frame screen was neutral/slower",
+    "animation_parallel_enablement": "reject_noops: evaluation, update, interpolation, and physics blend are already parallel",
+    "force_parallel_animation": "reject_unsafe: it overrides asset/project opt-outs and the previous forced-URO experiment regressed",
+    "core_tick_parallelism": "do_not_queue_without_late-PvP trace attribution: ordering and task-overhead risk exceed cold-boot evidence",
+    "FX.EarlyScheduleAsync": "queue isolated value-1 candidate behind cold-start, visual, and matched late-PvP frame-tail gates",
+    "fx.Niagara.SystemSimulation.TickBatchSize": "queue isolated value-8 candidate to test lower task overhead; require matched late-PvP tails and effect timing",
+    "boundary": "Neither queued candidate is promoted or credited with FPS. Static defaults only establish that the changes are non-noop and supported by the shipped binary."
+  }
+}

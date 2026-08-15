@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source": {
+    "serial": "emulator-5582",
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "process_id": 2697,
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "load_bias": "0x7951802000"
+  },
+  "methodology": {
+    "mapping": "offset-zero libUnreal.so mapping plus static ELF VMA",
+    "read": "four bytes from /proc/PID/mem through root toybox xxd",
+    "decode": "unsigned little-endian 32-bit integer",
+    "scope": "live referenced storage only; no FPS or task-overhead result is inferred"
+  },
+  "values": [
+    {
+      "cvar": "fx.Niagara.SystemSimulation.TickBatchMode",
+      "storage_vma": "0xb9fdb3c",
+      "runtime_address": "0x795d1ffb3c",
+      "raw_le_hex": "00000000",
+      "value_u32": 0
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.AllowASync",
+      "storage_vma": "0xb9fdb30",
+      "runtime_address": "0x795d1ffb30",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.BatchGPUTickSubmit",
+      "storage_vma": "0xb9fdb44",
+      "runtime_address": "0x795d1ffb44",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    }
+  ],
+  "conclusion": {
+    "isolation": "TickBatchMode changed from live control 1 to candidate 0 while both adjacent async/batching controls remained 1",
+    "boundary": "runtime application is proven; late-PvP performance and effect correctness remain untested"
+  }
+}

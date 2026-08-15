@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "client": {
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "riot_build": "18.1.0.5300314",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile_sha256": "2083f6bc5bbe53131eb192641194d35f71ef4feb9e890f725bf52ec1529b2b9d"
+  },
+  "static_support": {
+    "method": "exact UTF-16LE names, AArch64 ADRP/ADD xrefs, and constructor-local defaults in the live hash-matched binary",
+    "observations": [
+      {
+        "cvar": "r.GPUScene.ParallelUpdate",
+        "registration_xref": "0x594d8a8",
+        "compiled_value_u32": 2048,
+        "help": "zero disables parallel updates; positive N enables them when updated primitive and instance items exceed N"
+      },
+      {
+        "cvar": "r.GPUScene.MaxPooledUploadBufferSize",
+        "registration_xref": "0x594d86c",
+        "compiled_value_u32": 256000,
+        "help": "maximum GPU Scene upload-buffer size eligible for pooling",
+        "decision": "do not raise without allocation attribution; it would retain larger buffers"
+      },
+      {
+        "cvar": "r.GPUScene.UseGrowOnlyAllocationPolicy",
+        "registration_xref": "0x594d948",
+        "compiled_value_u32": 0,
+        "help": "deprecated 5.3 compatibility mode; zero lets instance buffers shrink as well as grow",
+        "decision": "reject deprecated memory-retention behavior"
+      },
+      {
+        "cvar": "r.GPUScene.Lights.AsyncSetup",
+        "registration_xref": "0x594d980",
+        "compiled_value_u32": 1,
+        "help": "run GPU Scene Lights setup in an async task",
+        "decision": "reject enablement no-op"
+      },
+      {
+        "cvar": "r.GPUScene.InstanceDataTileSizeLog2",
+        "registration_xref": "0x594d9b8",
+        "compiled_value_i32": -1,
+        "help": "negative disables tiling and reserved resources; positive requests a reserved-resource tile size with fallback",
+        "decision": "do not force reserved-resource tiling on the Android/gfxstream path"
+      },
+      {
+        "cvar": "fx.Niagara.ParallelGDME",
+        "registration_xref": "0x717ece4",
+        "storage_vma": "0xb9fd710",
+        "compiled_value_u32": 1,
+        "decision": "reject enablement no-op"
+      },
+      {
+        "cvar": "r.Visibility.TaskSchedule",
+        "registration_xref": "0x5df3f84",
+        "storage_vma": "0xb9f30ec",
+        "compiled_value_u32": 1,
+        "decision": "reject async-scheduling no-op"
+      },
+      {
+        "cvar": "r.Visibility.DynamicMeshElements.NumMainViewTasks",
+        "registration_xref": "0x5df40d4",
+        "storage_vma": "0xb9f30f0",
+        "compiled_value_u32": 4
+      },
+      {
+        "cvar": "r.ParallelTranslucency",
+        "registration_xref": "0x5f127bc",
+        "compiled_value_u32": 1,
+        "decision": "reject enablement no-op"
+      },
+      {
+        "cvar": "r.Visibility.FrustumCull.NumPrimitivesPerTask",
+        "registration_xref": "0x5df3fb4",
+        "storage_vma": "0xbbcf180",
+        "compiled_value_u32": 0,
+        "help": "zero selects automatic task sizing; positive values force a clamped primitive count",
+        "decision": "reject fixed override without late trace evidence because automatic sizing is already selected"
+      },
+      {
+        "cvar": "r.Visibility.Relevance.NumPrimitivesPerPacket",
+        "registration_xref": "0x5df4134",
+        "storage_vma": "0xbbcf188",
+        "compiled_value_u32": 0,
+        "help": "zero selects automatic packet sizing; positive values force a clamped primitive count",
+        "decision": "reject fixed override without late trace evidence because automatic sizing is already selected"
+      },
+      {
+        "cvar": "r.ParallelGatherNumPrimitivesPerPacket",
+        "registration_xref": "0x5e786f4",
+        "compiled_value_u32": 256,
+        "help": "used only when the shadow octree culling path is disabled",
+        "decision": "do not queue for the low-shadow profile without evidence that this conditional path is material"
+      }
+    ],
+    "interpretation": "Lowering the GPU Scene parallel threshold from 2048 to 512 is a supported, quality-neutral scheduling hypothesis; adjacent broad parallel-enable ideas are already on and visibility packet sizing is already automatic."
+  },
+  "methodology": {
+    "screen": "same expired-login state after consecutive cold AVD boots",
+    "memory": "three post-ready Android dumpsys meminfo snapshots per variant at the same timing range",
+    "crash_gate": "empty Android crash buffer and unchanged 12-file tombstone inventory",
+    "configuration_gate": "profile SHA and bind mount verified in TFT namespace; startup transition attested",
+    "boot_timing": "not compared because the control's host-emulator boot line was truncated from the retained terminal output",
+    "scope": "memory, crash, and configuration isolation only; no dense GPU Scene workload or TFT FPS is measured"
+  },
+  "runs": [
+    {
+      "variant": "candidate_gpu_scene_parallel_512",
+      "gpu_scene_parallel_update_threshold": 512,
+      "profile_sha256": "2083f6bc5bbe53131eb192641194d35f71ef4feb9e890f725bf52ec1529b2b9d",
+      "process_pid": 2793,
+      "memory_samples_kib": [
+        {"pss": 930438, "rss": 1075296, "swap": 0},
+        {"pss": 930011, "rss": 1074916, "swap": 0},
+        {"pss": 930247, "rss": 1075152, "swap": 0}
+      ],
+      "mean_memory_kib": {"pss": 930232, "rss": 1075121.333333, "swap": 0},
+      "startup_log_sha256": "372c2705c6da7f235da2ef7fbbf122b6ebe2f3bb2f5bddef8c4dbfc3fa12c574",
+      "startup_transition": "2048 -> 512",
+      "crash_buffer_empty": true,
+      "tombstone_file_count": 12,
+      "fresh_tombstone": false
+    },
+    {
+      "variant": "control_performance_max",
+      "gpu_scene_parallel_update_threshold": 2048,
+      "profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+      "process_pid": 2863,
+      "memory_samples_kib": [
+        {"pss": 930250, "rss": 1075288, "swap": 0},
+        {"pss": 930227, "rss": 1075280, "swap": 0},
+        {"pss": 930215, "rss": 1075268, "swap": 0}
+      ],
+      "mean_memory_kib": {"pss": 930230.666667, "rss": 1075278.666667, "swap": 0},
+      "startup_log_sha256": "904fcca25494c2cafe432514a65fd63881313586b996308a9cdd3d3000782f90",
+      "startup_transition": "compiled 2048 retained",
+      "crash_buffer_empty": true,
+      "tombstone_file_count": 12,
+      "fresh_tombstone": false
+    }
+  ],
+  "comparison": {
+    "candidate_vs_control_mean_pss_percent": 0.000143,
+    "candidate_vs_control_mean_rss_percent": -0.014632,
+    "cold_gate": "pass: paired memory and crash behavior are neutral"
+  },
+  "decision": {
+    "status": "queued_unpromoted",
+    "promotion": "none",
+    "required_next": "matched late-PvP control/candidate blocks with dense unit/effect scenes, RenderThread and RHIThread attribution, FPS, p95, and p99",
+    "reason": "The login screen does not cross or sustain a representative GPU Scene update count, so it cannot establish an FPS benefit."
+  }
+}

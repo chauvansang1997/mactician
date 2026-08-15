@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "kind": "unreal_uniform_command_pipeline_static_audit",
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so copied from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false
+  },
+  "methodology": {
+    "name_lookup": "Exact NUL-terminated UTF-16LE CVar name.",
+    "xref": "AArch64 ADRP/ADD registration references in the exact shipped binary.",
+    "default_decode": "File-backed referenced words use ELF PT_LOAD VMA mapping; constructor arguments and constructor control flow establish command-pipe defaults.",
+    "scope": "Static capability/default audit only; no static value is TFT FPS evidence."
+  },
+  "observations": [
+    {
+      "cvar": "r.DeferUniformExpressionCaching",
+      "registration_xref": "0x6a58cbc",
+      "storage_vma": "0xb9f5630",
+      "compiled_value_u32": 1,
+      "help": "Coalesce repeated material-parameter changes by deferring uniform-expression caching until draw time."
+    },
+    {
+      "cvar": "r.UniformExpressionCacheAsyncUpdates",
+      "registration_xref": "0x6a58d08",
+      "storage_vma": "0xb9f5634",
+      "compiled_value_u32": 1,
+      "help": "Permit asynchronous updates of material uniform-expression caches."
+    },
+    {
+      "cvar": "r.AsyncCacheMaterialUniformExpressions",
+      "registration_xref": "0x5daa934",
+      "storage_vma": "0xb9f30a8",
+      "compiled_value_u32": 1,
+      "help": "Offload material uniform-expression caching asynchronously."
+    },
+    {
+      "cvar": "r.RenderCommandPipeMode",
+      "registration_xref": "0x5071d0c",
+      "compiled_value_u32": 2,
+      "evidence": "mov w2,#2 at 0x5071d20 supplies the registration default.",
+      "help": "Value 2 enables all declared render-command pipes; value 1 limits piping to the render thread and value 0 uses individual tasks."
+    },
+    {
+      "cvar": "r.RenderCommandPipe.NiagaraDynamicData",
+      "registration_xref": "0x717ecb4",
+      "object_vma": "0xbc8c428",
+      "compiled_value_u32": 1,
+      "evidence": "Registration passes w2=0; the shared render-command-pipe constructor converts the non-disabled flag to documented default 1 before CVar registration.",
+      "help": "Enable the NiagaraDynamicData render-command pipe; on is the documented default."
+    },
+    {
+      "cvar": "r.Vulkan.AllowUniformUpload",
+      "registration_xref": "0x9d16ef8",
+      "storage_vma": "0xba14c88",
+      "compiled_value_u32": 1,
+      "help": "Permit uniform-buffer uploads outside render passes in the Vulkan RHI.",
+      "applicability": "Backend-specific support evidence only; TFT's Unreal renderer uses the OpenGL RHI above ANGLE, so this is not an OpenGL tuning control."
+    }
+  ],
+  "runtime_cross_checks": {
+    "rhi_thread_effective": true,
+    "evidence": "The stage-1-8 transport simpleperf proxy attributed 31.49% of sampled TFT process cycles to RHIThread, independently confirming an active RHI thread in this workload.",
+    "source_artifact": "artifacts/simpleperf-stage1-8-transport-audit-20260815.json",
+    "uniform_buffer_pooling_effective_u32": 1,
+    "uniform_buffer_pooling_transition": "1 -> 1",
+    "uniform_buffer_pooling_source_artifact": "artifacts/unreal-uniform-buffer-pooling-runtime-audit-20260815.json"
+  },
+  "qualified_unknowns": [
+    {
+      "cvar": "r.UniformBufferPooling",
+      "finding": "The exact binary contains runtime lookups, but this audit did not recover a trustworthy registration default.",
+      "decision": "Do not infer a compiled default. A later isolated runtime transition proves effective value 1; the queued r.OpenGL.UBOPoolSize profile remains a distinct, isolated capacity hypothesis."
+    }
+  ],
+  "decisions": {
+    "uniform_expression_enablement": "reject_noop: deferred, asynchronous, and material uniform-expression cache paths are already compiled on",
+    "render_command_pipe_enablement": "reject_noop: all declared pipes are selected and NiagaraDynamicData is already on",
+    "vulkan_uniform_upload": "reject_irrelevant_to_active_rhi: it is already on and does not control the OpenGL RHI path used by TFT",
+    "rhi_command_list_candidate": "retain_priority_2: Performance Max still explicitly bypasses command-list queuing; restoring r.RHICmdBypass=0 is separate from the already-enabled pipes and caches",
+    "candidate_added": false,
+    "promotion": "none",
+    "boundary": "The audit removes no-op hypotheses; it does not measure late-PvP frame pacing or prove a candidate FPS gain."
+  }
+}

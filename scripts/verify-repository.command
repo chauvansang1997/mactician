@@ -162,6 +162,7 @@ fi
 
 if rg -n '[А-Яа-яЁё]' --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
         --glob '!launcher/Resources/ru.lproj/**' \
+        --glob '!tools/tft-screen-classifier.swift' \
         --glob '!scripts/test-mactician.command' \
         --glob '!scripts/verify-repository.command' .; then
     fail "repository text is not in English"

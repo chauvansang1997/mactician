@@ -18,6 +18,9 @@ readonly CLASSIFIER="${TFT_SCREEN_CLASSIFIER_BINARY:-$PROJECT_DIR/runtime/tft-sc
 readonly CLASSIFIER_SOURCE="$PROJECT_DIR/tools/tft-screen-classifier.swift"
 readonly CLASSIFIER_BUILD="$PROJECT_DIR/scripts/build-tft-screen-classifier.command"
 readonly CAPTURE="$PROJECT_DIR/scripts/capture-frame-pacing.command"
+readonly UI_TRANSPORT_PROBE="$PROJECT_DIR/scripts/run-android-ui-transport-probe.command"
+readonly GLES_BUFFER_STRESS_PROBE="$PROJECT_DIR/scripts/run-android-gles-buffer-stress.command"
+readonly GLES_DRAW_STRESS_PROBE="$PROJECT_DIR/scripts/run-android-gles-draw-stress.command"
 readonly LOGIN_HELPER="$PROJECT_DIR/scripts/login-tft-from-keychain.command"
 readonly JQ="${TFT_JQ:-$(command -v jq 2>/dev/null || true)}"
 readonly RUN_ROOT="${TFT_AUTONOMOUS_TRIAL_ROOT:-$PROJECT_DIR/runtime/measurements/autonomous-trial}"
@@ -27,6 +30,17 @@ readonly MAX_TRIAL_ATTEMPTS="${TFT_TRIAL_MAX_ATTEMPTS:-3}"
 readonly MAX_CAPTURE_ATTEMPTS="${TFT_TRIAL_MAX_CAPTURE_ATTEMPTS:-2}"
 readonly MEASUREMENT_ROUNDS="${TFT_TRIAL_MEASUREMENT_ROUNDS:-3}"
 readonly MEASUREMENT_WINDOW_SECONDS="${TFT_TRIAL_MEASUREMENT_WINDOW_SECONDS:-1}"
+readonly UI_TRANSPORT_ROUNDS="${TFT_TRIAL_UI_TRANSPORT_ROUNDS:-0}"
+readonly GLES_STRESS_ROUNDS="${TFT_TRIAL_GLES_STRESS_ROUNDS:-0}"
+readonly GLES_STRESS_UPDATES="${TFT_TRIAL_GLES_STRESS_UPDATES:-4000}"
+readonly GLES_STRESS_BYTES="${TFT_TRIAL_GLES_STRESS_BYTES:-16384}"
+readonly GLES_STRESS_SYNC_EVERY="${TFT_TRIAL_GLES_STRESS_SYNC_EVERY:-120}"
+readonly GLES_STRESS_BARRIER_EVERY="${TFT_TRIAL_GLES_STRESS_BARRIER_EVERY:-64}"
+readonly GLES_STRESS_WARMUP_ROUNDS="${TFT_TRIAL_GLES_STRESS_WARMUP_ROUNDS:-$(( GLES_STRESS_ROUNDS > 8 ? 7 : 1 ))}"
+readonly GLES_DRAW_ROUNDS="${TFT_TRIAL_GLES_DRAW_ROUNDS:-0}"
+readonly GLES_DRAW_FRAMES="${TFT_TRIAL_GLES_DRAW_FRAMES:-120}"
+readonly GLES_DRAW_DRAWS_PER_FRAME="${TFT_TRIAL_GLES_DRAW_DRAWS_PER_FRAME:-256}"
+readonly GLES_DRAW_WARMUP_ROUNDS="${TFT_TRIAL_GLES_DRAW_WARMUP_ROUNDS:-$(( GLES_DRAW_ROUNDS > 8 ? 7 : 3 ))}"
 readonly AVD_HOME="${TFT_ROOT_AVD_HOME:-$(tft_resolve_avd_home)}"
 readonly AVD_NAME="${TFT_AVD_NAME:-TftRootAffinity}"
 readonly AVD_DIR="$AVD_HOME/$AVD_NAME.avd"
@@ -63,6 +77,12 @@ fi
 readonly CANDIDATE_JSON="$(
     "$JQ" -c --arg id "$CANDIDATE_ID" '.candidates[] | select(.id == $id)' \
         "$CANDIDATE_MANIFEST"
+)"
+readonly CANDIDATE_ANGLE_EXTRA="$(
+    print -r -- "$CANDIDATE_JSON" | "$JQ" -r '.env.TFT_ANGLE_EXTRA_FEATURES // ""'
+)"
+readonly CANDIDATE_ANGLE_DISABLED="$(
+    print -r -- "$CANDIDATE_JSON" | "$JQ" -r '.env.TFT_ANGLE_DISABLED_FEATURES // ""'
 )"
 readonly LAUNCHER_RELATIVE="$(print -r -- "$CANDIDATE_JSON" | "$JQ" -r '.launcher')"
 if [[ "$LAUNCHER_RELATIVE" == /* || "$LAUNCHER_RELATIVE" == *..* \
@@ -214,6 +234,51 @@ if [[ "$MINIMUM_TRIAL_SECONDS" != <-> ]] \
     print "minimumTrialSeconds must be from 0 through 3600."
     exit 2
 fi
+if [[ "$UI_TRANSPORT_ROUNDS" != <-> ]] \
+        || (( UI_TRANSPORT_ROUNDS < 0 || UI_TRANSPORT_ROUNDS > 30 )); then
+    print "TFT_TRIAL_UI_TRANSPORT_ROUNDS must be from 0 through 30."
+    exit 2
+fi
+for stress_name stress_value stress_minimum stress_maximum in \
+        rounds "$GLES_STRESS_ROUNDS" 0 30 \
+        updates "$GLES_STRESS_UPDATES" 1 100000 \
+        bytes "$GLES_STRESS_BYTES" 256 1048576 \
+        sync-every "$GLES_STRESS_SYNC_EVERY" 1 100000 \
+        barrier-every "$GLES_STRESS_BARRIER_EVERY" 0 100000 \
+        warmup-rounds "$GLES_STRESS_WARMUP_ROUNDS" 1 29; do
+    if [[ "$stress_value" != <-> ]] \
+            || (( stress_value < stress_minimum || stress_value > stress_maximum )); then
+        print "TFT_TRIAL_GLES_STRESS_${(U)stress_name//-/_} must be from $stress_minimum through $stress_maximum."
+        exit 2
+    fi
+done
+if (( GLES_STRESS_ROUNDS == 1 )); then
+    print "TFT_TRIAL_GLES_STRESS_ROUNDS must be 0 or at least 2."
+    exit 2
+fi
+if (( GLES_STRESS_ROUNDS > 0 && GLES_STRESS_WARMUP_ROUNDS >= GLES_STRESS_ROUNDS )); then
+    print "TFT_TRIAL_GLES_STRESS_WARMUP_ROUNDS must be less than TFT_TRIAL_GLES_STRESS_ROUNDS."
+    exit 2
+fi
+for draw_name draw_value draw_minimum draw_maximum in \
+        rounds "$GLES_DRAW_ROUNDS" 0 30 \
+        frames "$GLES_DRAW_FRAMES" 1 2000 \
+        draws-per-frame "$GLES_DRAW_DRAWS_PER_FRAME" 1 2048 \
+        warmup-rounds "$GLES_DRAW_WARMUP_ROUNDS" 1 29; do
+    if [[ "$draw_value" != <-> ]] \
+            || (( draw_value < draw_minimum || draw_value > draw_maximum )); then
+        print "TFT_TRIAL_GLES_DRAW_${(U)draw_name//-/_} must be from $draw_minimum through $draw_maximum."
+        exit 2
+    fi
+done
+if (( GLES_DRAW_ROUNDS == 1 )); then
+    print "TFT_TRIAL_GLES_DRAW_ROUNDS must be 0 or at least 2."
+    exit 2
+fi
+if (( GLES_DRAW_ROUNDS > 0 && GLES_DRAW_WARMUP_ROUNDS >= GLES_DRAW_ROUNDS )); then
+    print "TFT_TRIAL_GLES_DRAW_WARMUP_ROUNDS must be less than TFT_TRIAL_GLES_DRAW_ROUNDS."
+    exit 2
+fi
 if [[ "$UNKNOWN_TIMEOUT" != <-> ]] || (( UNKNOWN_TIMEOUT < 10 || UNKNOWN_TIMEOUT > 300 )); then
     print "TFT_TRIAL_UNKNOWN_TIMEOUT must be from 10 through 300 seconds."
     exit 2
@@ -239,6 +304,18 @@ for required_file in "$ADB" "$LAUNCHER" "$CLASSIFIER_BUILD" "$CAPTURE" "$LOGIN_H
         exit 1
     fi
 done
+if (( UI_TRANSPORT_ROUNDS > 0 )) && [[ ! -x "$UI_TRANSPORT_PROBE" ]]; then
+    print "The Android UI transport probe is unavailable: $UI_TRANSPORT_PROBE"
+    exit 1
+fi
+if (( GLES_STRESS_ROUNDS > 0 )) && [[ ! -x "$GLES_BUFFER_STRESS_PROBE" ]]; then
+    print "The Android GLES buffer stress probe is unavailable: $GLES_BUFFER_STRESS_PROBE"
+    exit 1
+fi
+if (( GLES_DRAW_ROUNDS > 0 )) && [[ ! -x "$GLES_DRAW_STRESS_PROBE" ]]; then
+    print "The Android GLES draw stress probe is unavailable: $GLES_DRAW_STRESS_PROBE"
+    exit 1
+fi
 
 readonly UTC_STAMP="$(date -u '+%Y%m%dT%H%M%SZ')"
 readonly RUN_DIR="$RUN_ROOT/${UTC_STAMP}__${CANDIDATE_ID}__$$"
@@ -295,6 +372,17 @@ fi
     print "profile_stage=${PROFILE_STAGE:-none}"
     print "profile=${PROFILE_PATH:-launcher_default}"
     print "minimum_trial_seconds=$MINIMUM_TRIAL_SECONDS"
+    print "ui_transport_rounds=$UI_TRANSPORT_ROUNDS"
+    print "gles_stress_rounds=$GLES_STRESS_ROUNDS"
+    print "gles_stress_updates=$GLES_STRESS_UPDATES"
+    print "gles_stress_bytes=$GLES_STRESS_BYTES"
+    print "gles_stress_sync_every=$GLES_STRESS_SYNC_EVERY"
+    print "gles_stress_barrier_every=$GLES_STRESS_BARRIER_EVERY"
+    print "gles_stress_warmup_rounds=$GLES_STRESS_WARMUP_ROUNDS"
+    print "gles_draw_rounds=$GLES_DRAW_ROUNDS"
+    print "gles_draw_frames=$GLES_DRAW_FRAMES"
+    print "gles_draw_draws_per_frame=$GLES_DRAW_DRAWS_PER_FRAME"
+    print "gles_draw_warmup_rounds=$GLES_DRAW_WARMUP_ROUNDS"
     print "max_trial_attempts=$MAX_TRIAL_ATTEMPTS"
     print "max_capture_attempts=$MAX_CAPTURE_ATTEMPTS"
     print "config_sha256_before=$CONFIG_SHA_BEFORE"
@@ -304,7 +392,11 @@ fi
 typeset LAUNCHER_PID=""
 typeset CLEANING_UP=0
 typeset BENCHMARK_SUCCEEDED=0
+typeset TRANSPORT_SCREEN_SUCCEEDED=0
+typeset GLES_STRESS_SUCCEEDED=0
+typeset GLES_DRAW_SUCCEEDED=0
 typeset MEASUREMENTS_COMPLETE=0
+typeset REQUIRE_VERIFIED_WRAP_RESTORE=0
 
 cleanup() {
     typeset original_status=$?
@@ -381,7 +473,7 @@ cleanup() {
     if [[ "$launcher_stopped" == yes && "$device_stopped" == yes \
             && "$config_restored" == yes && "$hardware_restored" == yes \
             && "$backups_absent" == yes && "$lock_absent" == yes \
-            && ( "$BENCHMARK_SUCCEEDED" != "1" || "$wrap_restore_verified" == yes ) ]]; then
+            && ( "$REQUIRE_VERIFIED_WRAP_RESTORE" != "1" || "$wrap_restore_verified" == yes ) ]]; then
         rollback_verified=true
         rollback_reason=verified_launcher_and_avd_restore
     fi
@@ -406,6 +498,9 @@ cleanup() {
         --arg variant "$VARIANT" \
         --arg run_dir "$RUN_DIR" \
         --argjson benchmark_succeeded "$([[ "$BENCHMARK_SUCCEEDED" == 1 ]] && print true || print false)" \
+        --argjson transport_screen_succeeded "$([[ "$TRANSPORT_SCREEN_SUCCEEDED" == 1 ]] && print true || print false)" \
+        --argjson gles_stress_succeeded "$([[ "$GLES_STRESS_SUCCEEDED" == 1 ]] && print true || print false)" \
+        --argjson gles_draw_succeeded "$([[ "$GLES_DRAW_SUCCEEDED" == 1 ]] && print true || print false)" \
         --argjson rollback_verified "$rollback_verified" \
         --arg rollback_reason "$rollback_reason" \
         --arg launcher_stopped "$launcher_stopped" \
@@ -416,6 +511,9 @@ cleanup() {
             variant: $variant,
             run_dir: $run_dir,
             benchmark_succeeded: $benchmark_succeeded,
+            transport_screen_succeeded: $transport_screen_succeeded,
+            gles_stress_succeeded: $gles_stress_succeeded,
+            gles_draw_succeeded: $gles_draw_succeeded,
             rollback: {verified: $rollback_verified, reason: $rollback_reason},
             launcher_stopped: ($launcher_stopped == "yes"),
             device_stopped: ($device_stopped == "yes")
@@ -425,7 +523,7 @@ cleanup() {
     if [[ "$launcher_stopped" != yes || "$device_stopped" != yes \
             || "$config_restored" != yes || "$hardware_restored" != yes \
             || "$backups_absent" != yes || "$lock_absent" != yes \
-            || ( "$BENCHMARK_SUCCEEDED" == "1" && "$wrap_restore_verified" != yes ) ]]; then
+            || ( "$REQUIRE_VERIFIED_WRAP_RESTORE" == "1" && "$wrap_restore_verified" != yes ) ]]; then
         print "The autonomous launch exited, but rollback did not pass every check: $RUN_DIR/cleanup.txt"
         if (( original_status == 0 )); then
             original_status=4
@@ -494,6 +592,88 @@ if [[ "$DISPLAY_REPORT" != *"$CANDIDATE_DISPLAY"* ]] \
     print "Candidate display was not applied: $DISPLAY_REPORT / $DENSITY_REPORT"
     exit 1
 fi
+
+readonly ANGLE_BASE_FEATURES="exposeNonConformantExtensionsAndVersions:exposeES32ForTesting"
+typeset EXPECTED_ANGLE_ENABLED="$ANGLE_BASE_FEATURES"
+[[ -n "$CANDIDATE_ANGLE_EXTRA" ]] \
+    && EXPECTED_ANGLE_ENABLED+=":$CANDIDATE_ANGLE_EXTRA"
+
+if (( GLES_STRESS_ROUNDS > 0 )); then
+    REQUIRE_VERIFIED_WRAP_RESTORE=1
+    set +e
+    TFT_GLES_STRESS_ROOT="$MEASUREMENT_ROOT/gles-buffer-stress" \
+    TFT_GLES_STRESS_EXPECTED_GRAPHICS_PROFILE=osft \
+    TFT_GLES_STRESS_EXPECTED_ANGLE_ENABLED="$EXPECTED_ANGLE_ENABLED" \
+    TFT_GLES_STRESS_EXPECTED_ANGLE_DISABLED="$CANDIDATE_ANGLE_DISABLED" \
+    TFT_ADB_SERVER_PORT="$ADB_SERVER_PORT" \
+    TFT_SERIAL="$SERIAL" \
+        "$GLES_BUFFER_STRESS_PROBE" \
+        "$CANDIDATE_ID" "$GLES_STRESS_ROUNDS" "$GLES_STRESS_UPDATES" \
+        "$GLES_STRESS_BYTES" "$GLES_STRESS_SYNC_EVERY" "$GLES_STRESS_BARRIER_EVERY" \
+        "$GLES_STRESS_WARMUP_ROUNDS" \
+        > "$RUN_DIR/gles-buffer-stress.log" 2>&1
+    gles_stress_status=$?
+    set -e
+    if (( gles_stress_status != 0 )); then
+        print "The attested guest GLES buffer stress probe failed: $RUN_DIR/gles-buffer-stress.log"
+        exit "$gles_stress_status"
+    fi
+    GLES_STRESS_SUCCEEDED=1
+    MEASUREMENTS_COMPLETE=1
+    print "Attested guest GLES buffer stress probe completed for $CANDIDATE_ID."
+fi
+
+if (( GLES_DRAW_ROUNDS > 0 )); then
+    REQUIRE_VERIFIED_WRAP_RESTORE=1
+    set +e
+    TFT_GLES_DRAW_ROOT="$MEASUREMENT_ROOT/gles-draw-stress" \
+    TFT_GLES_DRAW_EXPECTED_GRAPHICS_PROFILE=osft \
+    TFT_GLES_DRAW_EXPECTED_ANGLE_ENABLED="$EXPECTED_ANGLE_ENABLED" \
+    TFT_GLES_DRAW_EXPECTED_ANGLE_DISABLED="$CANDIDATE_ANGLE_DISABLED" \
+    TFT_ADB_SERVER_PORT="$ADB_SERVER_PORT" \
+    TFT_SERIAL="$SERIAL" \
+        "$GLES_DRAW_STRESS_PROBE" \
+        "$CANDIDATE_ID" "$GLES_DRAW_ROUNDS" "$GLES_DRAW_FRAMES" \
+        "$GLES_DRAW_DRAWS_PER_FRAME" "$GLES_DRAW_WARMUP_ROUNDS" \
+        > "$RUN_DIR/gles-draw-stress.log" 2>&1
+    gles_draw_status=$?
+    set -e
+    if (( gles_draw_status != 0 )); then
+        print "The attested guest GLES draw stress probe failed: $RUN_DIR/gles-draw-stress.log"
+        exit "$gles_draw_status"
+    fi
+    GLES_DRAW_SUCCEEDED=1
+    MEASUREMENTS_COMPLETE=1
+    print "Attested guest GLES draw stress probe completed for $CANDIDATE_ID."
+fi
+
+if (( UI_TRANSPORT_ROUNDS > 0 )); then
+    REQUIRE_VERIFIED_WRAP_RESTORE=1
+    set +e
+    TFT_UI_TRANSPORT_ROOT="$MEASUREMENT_ROOT/ui-transport" \
+    TFT_UI_TRANSPORT_EXPECTED_GRAPHICS_PROFILE=osft \
+    TFT_UI_TRANSPORT_EXPECTED_ANGLE_ENABLED="$EXPECTED_ANGLE_ENABLED" \
+    TFT_UI_TRANSPORT_EXPECTED_ANGLE_DISABLED="$CANDIDATE_ANGLE_DISABLED" \
+    TFT_UI_TRANSPORT_EXPECT_ANGLE_MAPPED=1 \
+    TFT_ADB_SERVER_PORT="$ADB_SERVER_PORT" \
+    TFT_SERIAL="$SERIAL" \
+        "$UI_TRANSPORT_PROBE" "$CANDIDATE_ID" "$UI_TRANSPORT_ROUNDS" \
+        > "$RUN_DIR/ui-transport.log" 2>&1
+    transport_status=$?
+    set -e
+    if (( transport_status != 0 )); then
+        print "The attested Android UI transport screen failed: $RUN_DIR/ui-transport.log"
+        exit "$transport_status"
+    fi
+    TRANSPORT_SCREEN_SUCCEEDED=1
+    MEASUREMENTS_COMPLETE=1
+    print "Attested Android UI transport screen completed for $CANDIDATE_ID."
+    exit 0
+fi
+if (( GLES_STRESS_ROUNDS > 0 || GLES_DRAW_ROUNDS > 0 )); then
+    exit 0
+fi
+
 readonly DISPLAY_WIDTH="${CANDIDATE_DISPLAY%x*}"
 readonly DISPLAY_HEIGHT="${CANDIDATE_DISPLAY#*x}"
 # The game's Slate coordinates use a 2048x1152 reference while ADB input uses
@@ -1107,6 +1287,37 @@ while (( SECONDS - navigation_started < NAVIGATION_TIMEOUT )); do
 
     take_state_screenshot
     case "$CURRENT_STATE" in
+        patch_available)
+            UNKNOWN_SINCE=""
+            # This exact two-marker modal is the only startup patch prompt the
+            # autonomous runner accepts. The affirmative icon is centered in
+            # the right half of the fixed-size dialog.
+            if ! tap_recognized_state patch_available ACCEPT_PATCH \
+                    110 86 display_center; then
+                exit 3
+            fi
+            ;;
+        patch_ready)
+            UNKNOWN_SINCE=""
+            if ! tap_recognized_state patch_ready START_PATCHING \
+                    0 165 display_center; then
+                exit 3
+            fi
+            ;;
+        patching)
+            # Patching is a recognized non-interactive state. Keep observing;
+            # every click remains disabled until another exact state appears.
+            UNKNOWN_SINCE=""
+            ;;
+        cosmetic_notice)
+            UNKNOWN_SINCE=""
+            # The exact default-cosmetics notice is informational and its
+            # close glyph has a stable location inside the Trials panel.
+            if ! tap_recognized_state cosmetic_notice CLOSE_COSMETIC_NOTICE \
+                    1165 565; then
+                exit 3
+            fi
+            ;;
         disconnected)
             UNKNOWN_SINCE=""
             if [[ "$CURRENT_EVIDENCE" == *"YOU DISCONNECTED"* \

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "source": {
+    "serial": "emulator-5582",
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "process_id": 2718,
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "load_bias": "0x783200b000"
+  },
+  "methodology": {
+    "mapping": "offset-zero libUnreal.so mapping plus static ELF VMA",
+    "read": "four bytes from /proc/PID/mem through root toybox xxd",
+    "decode": "unsigned little-endian 32-bit integer",
+    "scope": "live referenced storage only; semantic interpretation still depends on the CVar type and call sites"
+  },
+  "values": [
+    {
+      "cvar": "tft.EnableDragSubsystemTicklessMode",
+      "storage_vma": "0xbd2e720",
+      "runtime_address": "0x783dd39720",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    },
+    {
+      "cvar": "FX.AllowAsyncTick",
+      "storage_vma": "0xb9f89b8",
+      "runtime_address": "0x783da039b8",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    },
+    {
+      "cvar": "FX.BatchAsync",
+      "storage_vma": "0xb9f8bc0",
+      "runtime_address": "0x783da03bc0",
+      "raw_le_hex": "20000000",
+      "value_u32": 32
+    }
+  ],
+  "conclusion": {
+    "tft.EnableDragSubsystemTicklessMode": "candidate_value_1_survives_startup_and_runtime_initialization",
+    "FX.AllowAsyncTick": "unchanged_from_control_at_1",
+    "FX.BatchAsync": "unchanged_from_control_at_32",
+    "boundary": "runtime application is proven; drag correctness and late-PvP performance remain untested"
+  }
+}

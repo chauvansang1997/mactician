@@ -31,6 +31,8 @@
 "effects_quality.high.detail" = "Full detail";
 "effects_quality.performance" = "Performance";
 "effects_quality.performance.detail" = "Fewer effects and simpler LOD";
+"effects_quality.maximum" = "Maximum FPS";
+"effects_quality.maximum.detail" = "67% 3D scale, fewer effects and simpler LOD";
 
 "action.play" = "Play";
 "action.update_game" = "Update game";

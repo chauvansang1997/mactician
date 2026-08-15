@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so pulled from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false
+  },
+  "methodology": {
+    "name_lookup": "exact UTF-16LE CVar name",
+    "xref": "AArch64 ADRP/ADD reference passed as x1 to the console-variable reference constructor at 0x32635cc, or to the integer constructor at 0x32639e8",
+    "default_decode": "referenced .data storage is decoded from the final ELF LOAD segment using its 0xc000 VMA-to-file offset delta; stack-backed defaults are decoded from the explicit store before registration",
+    "runtime_check": "the referenced .data words were also read from /proc/PID/mem in a live control process after verifying the loaded library hash",
+    "scope": "compiled and live referenced defaults only; console priority or later runtime code may still override them"
+  },
+  "observations": [
+    {
+      "cvar": "FX.AllowAsyncTick",
+      "name_vma": "0x2fc9d8",
+      "registration_xref": "0x6b0d844",
+      "default_storage_vma": "0xb9f89b8",
+      "default": 1,
+      "evidence": "ELF bytes at file offset 0xb9ec9b8 and the live control storage are both 01000000",
+      "help": "allow parallel ticking of particle systems."
+    },
+    {
+      "cvar": "FX.EarlyScheduleAsync",
+      "name_vma": "0x4749d2",
+      "registration_xref": "0x6b4355c",
+      "default": 0,
+      "evidence": "str wzr,[sp] at 0x6b43578 before registration",
+      "help": "If 1, particle system components that can run async will be scheduled earlier in the frame."
+    },
+    {
+      "cvar": "FX.BatchAsync",
+      "name_vma": "0x3529c2",
+      "registration_xref": "0x6b435dc",
+      "default_storage_vma": "0xb9f8bc0",
+      "default": 32,
+      "evidence": "ELF bytes at file offset 0xb9ecbc0 and the live control storage are both 20000000",
+      "help": "When FX.BatchAsync = 1, controls the number of particle systems grouped together for threading."
+    }
+  ],
+  "decision": {
+    "FX.AllowAsyncTick": "reject_noop_already_enabled",
+    "FX.EarlyScheduleAsync": "do_not_combine_without_an_independent_late_pvp_hypothesis",
+    "FX.BatchAsync": "reject_noop_nonzero_batching_already_configured",
+    "boundary": "These FX CVars do not establish Niagara behavior; Riot uses Niagara and Cascade paths may both be present."
+  }
+}

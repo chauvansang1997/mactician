@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so pulled from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false
+  },
+  "methodology": {
+    "name_lookup": "exact UTF-16LE CVar name in the read-only image",
+    "registration_xref": "AArch64 ADRP/ADD reference passed as x1 to the boolean constructor at 0x3263b70 or the console-variable reference wrapper at 0x3263ed4",
+    "default_decode": "the byte stored through x2 immediately before construction, or proven zero-initialized .bss reference storage; zero-register is false and a register proven to contain immediate 1 is true",
+    "help_decode": "UTF-16LE string passed as x3",
+    "scope": "static compiled defaults only; startup config, DeviceProfiles, saved settings, or runtime code may override them",
+    "false_positive_control": "unsupported register provenance is never guessed"
+  },
+  "observations": [
+    {
+      "cvar": "tft.PooledActorReferenceValidationEnabled",
+      "name_vma": "0x44b94e",
+      "registration_xref": "0x835eaa8",
+      "default": false,
+      "evidence": "strb wzr,[sp,#32] at 0x835eac4",
+      "help": "Set to != 0 to enable validation of pooled actor references, = 0 to disable."
+    },
+    {
+      "cvar": "tft.ActorPoolingEnabled",
+      "name_vma": "0x44c3ac",
+      "registration_xref": "0x835eb58",
+      "default": true,
+      "evidence": "mov w25,#1 at 0x835e8a8; strb w25,[sp,#32] at 0x835eb74",
+      "help": "Set to != 0 to enable actor pooling, = 0 to disable."
+    },
+    {
+      "cvar": "tft.ActorPoolWarmingEnabled",
+      "name_vma": "0x44c34e",
+      "registration_xref": "0x835eb94",
+      "default": false,
+      "evidence": "strb wzr,[sp,#32] at 0x835ebb0",
+      "help": "Set to != 0 to enable actor pool warming, = 0 to disable."
+    },
+    {
+      "cvar": "tft.ChronoPoolingEnabled",
+      "name_vma": "0x44c41c",
+      "registration_xref": "0x849ce38",
+      "default": true,
+      "evidence": "mov w24,#1 at 0x849cc5c; strb w24,[sp,#32] at 0x849ce54",
+      "help": "Set to != 0 to enable chrono pooling, = 0 to disable."
+    },
+    {
+      "cvar": "tft.ChronoHandlerPoolingEnabled",
+      "name_vma": "0x44c3dc",
+      "registration_xref": "0x849ce74",
+      "default": true,
+      "evidence": "mov w24,#1 at 0x849cc5c; strb w24,[sp,#32] at 0x849ce90",
+      "help": "Set to != 0 to reuse UTFTChronoHandler objects across chrono instances, = 0 to allocate/destroy one per instance."
+    },
+    {
+      "cvar": "tft.ChronoForceSingleThreadSync",
+      "name_vma": "0x474c8a",
+      "registration_xref": "0x849ceb0",
+      "default": false,
+      "evidence": "strb wzr,[sp,#32] at 0x849cecc",
+      "help": "When enabled, UChronoSubsystem::SyncRemoteToLocal will only run on the game thread, instead of across the worker threads."
+    },
+    {
+      "cvar": "tft.ChronoDelayedStart",
+      "name_vma": "0xd11b0",
+      "registration_xref": "0x849cdec",
+      "default": true,
+      "evidence": "mov w24,#1 at 0x849cc5c; str w24,[sp,#32] at 0x849ce08",
+      "help": "When enabled, server chronos without an explicit StartTime keep StartTime at 0 until InitInstance stamps the actual playback start time."
+    },
+    {
+      "cvar": "tft.FrameAlignmentCompensation",
+      "name_vma": "0x291c6e",
+      "registration_xref": "0x8680ce8",
+      "default": true,
+      "evidence": "mov w22,#1 at 0x8680ba0; str w22,[sp,#4] at 0x8680cdc",
+      "help": "When enabled, client GetGameTime subtracts the median client frame-alignment delay from predicted server time."
+    },
+    {
+      "cvar": "tft.Movement.PreserveTransformWhenBlendEmpty",
+      "name_vma": "0x7b568",
+      "registration_xref": "0x8671798",
+      "default": true,
+      "evidence": "mov w25,#1 at 0x8671010; strb w25,[sp] at 0x86717b4",
+      "help": "Preserves a client actor's current location and rotation when replicated movement temporarily has no blend entries."
+    },
+    {
+      "cvar": "tft.Movement.ReconstructReplicatedMoveOnce",
+      "name_vma": "0x40b6b2",
+      "registration_xref": "0x86717d4",
+      "default": true,
+      "evidence": "mov w25,#1 at 0x8671010; strb w25,[sp] at 0x86717f0",
+      "help": "Prevents a client from reconstructing a cleaned movement while the same remote move ID remains replicated."
+    },
+    {
+      "cvar": "tft.GarbageCollection.EnablePhaseTriggeredCollection",
+      "name_vma": "0x2879fc",
+      "registration_xref": "0x86afd54",
+      "default": true,
+      "evidence": "mov w24,#1 at 0x86afaac; strb w24,[sp,#4] at 0x86afd70",
+      "help": "Set to != 0 to schedule garbage collection during planning/combat/draft departure phases."
+    },
+    {
+      "cvar": "tft.Tick.RelevancyEnabled",
+      "name_vma": "0x44a468",
+      "registration_xref": "0x8858554",
+      "default": true,
+      "evidence": "mov w19,#1 at 0x8858540; strb w19,[sp,#8] at 0x8858548",
+      "help": "When false, clients schedule managed tick targets without relevancy filtering."
+    },
+    {
+      "cvar": "tft.KillPveCharactersOnCombatEnd",
+      "name_vma": "0x422018",
+      "registration_xref": "0x84ad3c0",
+      "default": false,
+      "evidence": "strb wzr,[sp,#32] at 0x84ad3dc",
+      "help": "Set to != 0 to have all living PVE characters in combat executed when combat ends."
+    },
+    {
+      "cvar": "tft.EnableDragSubsystemTicklessMode",
+      "name_vma": "0x3f12e4",
+      "registration_xref": "0x8507f78",
+      "default_storage_vma": "0xbd2e720",
+      "default": false,
+      "evidence": "x19 is set to zero-initialized .bss storage 0xbd2e720 at 0x8507c24-0x8507c28 and passed as x2 at 0x8507f8c",
+      "help": "Optimization - When enabled, avoid drag subsystem ticking every frame.",
+      "runtime_confirmation": "the live control process read value 0 from referenced storage; the candidate cold-start log recorded false -> 1"
+    },
+    {
+      "cvar": "tft.Audio.PlayOnlyOneArenaAtATime",
+      "name_vma": "0x3ae93a",
+      "registration_xref": "0x83c7e24",
+      "default": false,
+      "evidence": "strb wzr,[x29,#-24] at 0x83c7e40",
+      "help": "Causes music to play only for the player's current arena rather than simulate all arenas."
+    },
+    {
+      "cvar": "tft.Audio.RestrictNumberOfAmbientSounds",
+      "name_vma": "0x19d0b0",
+      "registration_xref": "0x83c7e60",
+      "default": false,
+      "evidence": "strb wzr,[x29,#-24] at 0x83c7e7c",
+      "help": "Restricts the number of ambient sounds that can play at once."
+    }
+  ],
+  "decisions": {
+    "actor_pooling": "reject_noop_already_enabled",
+    "chrono_pooling": "reject_noop_already_enabled",
+    "chrono_single_thread_sync": "reject_noop_parallel_path_already_selected",
+    "chrono_delayed_start": "reject_noop_already_enabled",
+    "frame_alignment_compensation": "reject_noop_already_enabled",
+    "replicated_movement_optimizations": "reject_noops_already_enabled",
+    "phase_triggered_gc": "reject_noop_already_enabled",
+    "tick_relevancy": "reject_noop_already_enabled",
+    "actor_pool_warming": "add_unpromoted_one_factor_candidate_with_startup_and_memory_gates",
+    "drag_subsystem_tickless": "add_unpromoted_one_factor_candidate_with_drag_correctness_gate",
+    "kill_pve_on_combat_end": "do_not_test_for_late_pvp_because_it_affects_only_pve_cleanup",
+    "audio_arena_and_ambient_limits": "do_not_queue_without_late_pvp_audiomixer_attribution: both change audio presentation, while the prior audio-off screen was neutral or slower"
+  }
+}

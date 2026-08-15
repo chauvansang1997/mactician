@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source": {
+    "base_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-parallel-dynamic-mesh.ini",
+    "candidate_profile_sha256": "10dfd8967f4b13d90ab93a4ce37500be153671f396469b4748538bdaeab186b2",
+    "startup_log_sha256": "f3b9d98bd935e8ff3246a696f29d3bb6c10345c3d9aa6f502b23bd2f4b1108b8",
+    "startup_log_embedded": false
+  },
+  "methodology": {
+    "attestation": "exact candidate-only CVar deltas observed in DeviceProfile push records",
+    "protected_override": "lower-priority write was logged as ignored and retained the candidate value",
+    "scope": "startup application and priority only; this is not a runtime FPS result"
+  },
+  "result": {
+    "delta_count": 1,
+    "startup_attested_count": 1,
+    "protected_override_count": 0,
+    "all_deltas_startup_attested": true
+  },
+  "deltas": [
+    {
+      "key": "r.Visibility.DynamicMeshElements.Parallel",
+      "base_value": null,
+      "candidate_value": "1",
+      "device_profile_push_records": 1,
+      "protected_override_records": 0,
+      "startup_attested": true
+    }
+  ]
+}

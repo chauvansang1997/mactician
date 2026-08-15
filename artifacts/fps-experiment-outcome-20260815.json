@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "kind": "mactician_fps_experiment_outcome",
+  "generated_utc": "2026-08-15T06:18:08Z",
+  "scope": "FPS and frame-tail work with emphasis on effect-heavy late-player combat",
+  "late_pvp_measurement": {
+    "authenticated_real_game_sessions": 0,
+    "status": "blocked_by_unavailable_riot_authentication_during_experiment_window",
+    "new_tft_late_pvp_promotions": 0,
+    "boundary": "Synthetic GLES, cold-login, static-binary, and stage-1-8 proxy evidence cannot be reported as late-PvP TFT FPS."
+  },
+  "retained_product_changes": [
+    {
+      "change": "selectable Maximum FPS launcher preset",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+      "profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+      "behavior": "67 percent 3D scale with the existing Performance Max effects, LOD, ANGLE, and 16 KiB ASG choices",
+      "status": "user_selectable_reversible_preset"
+    },
+    {
+      "change": "explicitly request four remote OpenGL program compiler services",
+      "reason": "pin the previously verified count instead of inheriting a patch-varying value after an observed zero-service cache regression",
+      "runtime_startup_transition": "4 -> 4",
+      "source": "artifacts/unreal-startup-cvar-audit-20260815.json",
+      "status": "first_use_stall_compatibility_guard_not_new_late_pvp_fps_evidence"
+    }
+  ],
+  "measured_findings": {
+    "stage_1_8_heavy_proxy": {
+      "control_fps": 29.2,
+      "control_p95_ms": 48.765542,
+      "rhi_thread_sample_share_percent": 31.49,
+      "transport_symbol_sample_share_percent": 16.44,
+      "inline_submission_fps_delta_percent": -9.589041,
+      "decision": "keep_16k_on_demand_transport_and_reject_inline_submission",
+      "attribution_boundary": "The RHIThread share is broad RHI/transport cost, not measured UBO cost.",
+      "source": "artifacts/simpleperf-stage1-8-transport-audit-20260815.json"
+    },
+    "synthetic_pooled_ubo_map_once": {
+      "winning_brackets": 8,
+      "total_brackets": 8,
+      "asg_256_draw_mean_delta_percent": {
+        "median_time_per_draw": -33.62572266786217,
+        "p95_time_per_draw": -30.53576474296578
+      },
+      "asg_512_draw_mean_delta_percent": {
+        "median_time_per_draw": -48.99472921465933,
+        "p95_time_per_draw": -48.08371389985511
+      },
+      "asg_1024_draw_mean_delta_percent": {
+        "median_time_per_draw": -53.13461517376588,
+        "p95_time_per_draw": -52.439480012509335
+      },
+      "pipe_512_draw_mean_delta_percent": {
+        "median_time_per_draw": -47.332437794094275,
+        "p95_time_per_draw": -50.17588347683536
+      },
+      "gl_error_rounds": 0,
+      "decision": "prioritize_existing_16m_ubo_pool_candidate_without_promotion",
+      "capacity_boundary": "The largest measured working set was 32 KiB; the 16 MiB capacity is an unsized hypothesis.",
+      "sources": [
+        "artifacts/android-gles-ubo-stress-screen-20260815.json",
+        "artifacts/android-gles-ubo-density-screen-20260815.json",
+        "artifacts/android-gles-ubo-transport-crosscheck-20260815.json",
+        "artifacts/unreal-opengl-ubo-capacity-sizing-audit-20260815.json"
+      ]
+    },
+    "resolution_sensitivity_boundary": {
+      "stage_1_5_fps_2560x1440": 31.3,
+      "stage_1_5_fps_1600x900": 30.5,
+      "source_pixel_multiplier": 2.56,
+      "lower_resolution_fps_delta_percent": -2.555911,
+      "fifty_percent_3d_scale_status": "incomplete_and_no_advantage_over_selected_67_percent_profile",
+      "decision": "do_not_reduce_below_67_percent_as_a_presumed_late_fight_fix",
+      "boundary": "This narrow stage-1-5 result identifies one CPU/RHI-bound scene; it does not prove that resolution is free in every workload.",
+      "source": "docs/benchmarks.md"
+    }
+  },
+  "rejected_or_not_promoted": [
+    {
+      "candidate": "preferCPUForBufferSubData",
+      "decision": "rejected_slower",
+      "source": "artifacts/android-gles-draw-stress-screen-20260815.json",
+      "draw_stress_mean_delta_percent": {"median": 3.711, "p95": 9.1455}
+    },
+    {
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "decision": "rejected_tail_regression",
+      "source": "artifacts/android-gles-draw-stress-screen-20260815.json",
+      "draw_stress_mean_delta_percent": {"median": -0.3465, "p95": 3.6819}
+    },
+    {
+      "candidate": "preferAggregateBarrierCalls",
+      "decision": "neutral_below_3_percent_gate",
+      "source": "artifacts/android-gles-draw-stress-screen-20260815.json",
+      "draw_stress_mean_delta_percent": {"median": -0.7921, "p95": -0.4919}
+    },
+    {
+      "candidate": "disable-useVkEventForImageBarrier",
+      "decision": "neutral_below_gate_with_worse_tail",
+      "source": "artifacts/android-gles-draw-stress-screen-20260815.json",
+      "draw_stress_mean_delta_percent": {"median": -1.594, "p95": 1.0079}
+    },
+    {
+      "candidate": "critical Unreal thread priority boost",
+      "decision": "rejected_redundant_and_starvation_prone",
+      "reason": "RHIThread, GameThread, RenderThread, and active TaskGraph workers were already priority 10 / nice -10.",
+      "source": "artifacts/thread-scheduler-login-validation-20260815.json"
+    }
+  ],
+  "next_authenticated_late_pvp_queue": [
+    "performance-max-ubo-pool-16m-screen",
+    "performance-max-rhi-command-list-screen",
+    "performance-max-animation-budget-1ms-screen",
+    "performance-max-gpu-scene-parallel-512-screen",
+    "performance-max-parallel-dynamic-mesh-screen",
+    "performance-max-fx-early-schedule-screen",
+    "performance-max-niagara-batch-size-8-screen"
+  ],
+  "late_pvp_evidence_pipeline": {
+    "passive_input_free_observer": true,
+    "priority_candidate_profile_hash_pin_checked_before_adb": true,
+    "before_after_stage_and_combat_gate": true,
+    "live_profile_sha256_and_single_bind_mount_attestation_before_and_after_pacing": true,
+    "exact_game_version_and_active_apk_matching": true,
+    "stable_power_mode_and_thermal_bracketing": true,
+    "non_overlapping_frame_pacing_and_cpu_profile": true,
+    "profiling_overhead_excluded_from_player_fps_and_limited_to_first_capture": true,
+    "raw_callgraph_data_retained_with_sha256": true,
+    "caller_inclusive_children_report_emitted": true,
+    "cpu_profile_pid_hash_and_single_mount_bracket": true,
+    "thread_scheduler_snapshots": true,
+    "failed_raw_pull_rejects_only_profile_and_removes_partial_file": true,
+    "zero_byte_raw_pull_rejected_and_removed": true,
+    "raw_callgraph_size_and_sha_reverified_at_session_finalize": true,
+    "minimum_independent_sessions_per_variant": 2
+  },
+  "safety": {
+    "stock_rollback_verified": true,
+    "experimental_mounts_active": false,
+    "emulator_processes_after_shutdown": 0,
+    "adb_devices_after_shutdown": 0,
+    "avd_lock_present_after_shutdown": false,
+    "persisted_transport": "pipe",
+    "live_process_recheck": {
+      "utc": "2026-08-15T06:18:08Z",
+      "dedicated_adb_5038_processes": 0,
+      "tft_emulator_processes": 0,
+      "avd_locks_or_profile_transaction_markers": 0
+    },
+    "source": "artifacts/stock-rollback-validation-20260815.json"
+  },
+  "verification": {
+    "mactician_fixture_and_unit_tests": "pass",
+    "swift_typecheck": "pass",
+    "repository_validation": "pass_1.0.4_build_40",
+    "real_image_screen_classifier": "pass_battle_stage_1_5_four_resolutions",
+    "adhoc_app_bundle_compile_profile_copy_and_deep_codesign": "pass",
+    "dmg_creation": "not_verified_hdiutil_unavailable_in_sandbox",
+    "go_tests": "not_applicable_no_go_mod_or_go_work_in_repository"
+  },
+  "final_decision": "Keep the reversible Maximum FPS preset and instrumentation. Do not merge any of the seven late-PvP candidates into the preset until matched authenticated combat pacing, visual-correctness, crash, and memory gates pass."
+}

@@ -42,7 +42,8 @@ is configured independently.
   image archives.
 - Verifies every downloaded component and bundled game split with SHA-256.
 - Creates, provisions, starts, stops, repairs, and resets a dedicated AVD.
-- Offers resolution, UI scale, Android RAM, vCPU, and game-language controls.
+- Offers resolution, UI scale, Android RAM, vCPU, game-language, and three
+  graphics-detail controls, including a reversible Maximum FPS profile.
 - Preserves the local Android runtime, Riot sign-in, game data, and launcher
   preferences across full application updates.
 - Repairs incomplete installs and a known zero-byte streaming-install cache

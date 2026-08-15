@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "scene": {
+    "name": "Tocker's Trials stage 1-8 combat",
+    "late_pvp": false,
+    "scope": "authenticated historical render-load proxy; it does not reproduce the user's late-player-combat report"
+  },
+  "methodology": {
+    "summarizer": "scripts/summarize-simpleperf-report.command",
+    "summarizer_sha256": "47112e689838a25bddf29ce2d0fedc9cf5b14d68e688faf57bf3e8f69f6970c3",
+    "event": "cpu-clock",
+    "profile_duration_seconds": 2,
+    "aggregation": "exclusive simpleperf overhead rows by command, symbol, and mutually exclusive symbol category",
+    "caveats": [
+      "each configuration has one semantically gated stage-1-8 profile, so percentage comparisons are diagnostic rather than a promotion experiment",
+      "the Shipping libUnreal.so is stripped; unidentified Unreal offsets cannot be assigned to a subsystem",
+      "percentages are per-report sample shares, not elapsed milliseconds, and rounded rows can sum slightly above 100 percent"
+    ]
+  },
+  "runs": [
+    {
+      "id": "performance-max-16k-on-demand",
+      "run": "20260811T002030Z__profile-performance-max-heavy__60232",
+      "settings": {"asg_write_step_bytes": 16384, "guest_submit_thread": "on-demand"},
+      "source": {"simpleperf_report_sha256": "571900eec054612852631ebaa9a8064e38d1afbc54fd44f446ee8f3207932864", "host_sample_sha256": "48ba58228131e8d247411c7a3e8c5126b582c965ee6170e1368f4d9fc366f325", "frame_summary_sha256": "c1ee58413cb52d0e85d061c93a44be293d1bb10d8147a825b600b26a86feb43f", "samples": 16301},
+      "pacing": {"fps": 29.2, "mean_ms": 34.23, "p95_ms": 48.765542, "p99_ms": 49.927875},
+      "guest_cpu_share_percent": {"RHIThread": 31.49, "GameThread": 14.49, "RenderThread": 6.2, "virtio_gpu_transport": 16.44, "writew": 11.71, "ring_buffer_available_read": 2.46, "AddressSpaceStream_speculativeRead": 2.08}
+    },
+    {
+      "id": "performance-max-16k-inline",
+      "run": "20260811T003537Z__profile-performance-max-submit-inline__67011",
+      "settings": {"asg_write_step_bytes": 16384, "guest_submit_thread": "inline"},
+      "source": {"simpleperf_report_sha256": "840394b8b4d729fdd90b7691c2015af6cdef8f70bd50afc1e3a22f5514f2808c", "host_sample_sha256": "5db52a1a5e60e2b62a0313f0fb2c304324944d4d33ef6d56c7be8dda2a42a51c", "frame_summary_sha256": "5f8e4512c75da5a31ae7f5f961b39d4a502da5cb70416aff1f9494d6d35187ba", "samples": 12770},
+      "pacing": {"fps": 26.4, "mean_ms": 37.86, "p95_ms": 50.621042, "p99_ms": 52.284625},
+      "delta_vs_control_percent": {"fps": -9.589041, "mean_ms": 10.604733, "p95_ms": 3.804941},
+      "guest_cpu_share_percent": {"RHIThread": 37.5, "GameThread": 13.27, "RenderThread": 4.81, "virtio_gpu_transport": 19.78, "writew": 14.39, "ring_buffer_available_read": 2.92, "AddressSpaceStream_speculativeRead": 2.4}
+    },
+    {
+      "id": "performance-max-32k-on-demand",
+      "run": "20260811T004317Z__profile-performance-max-asg-step-32768__70158",
+      "settings": {"asg_write_step_bytes": 32768, "guest_submit_thread": "on-demand"},
+      "source": {"simpleperf_report_sha256": "0ddaa81a728eb82a7fdddc85c5947254575ac03fb847e827acf868d6b316433b", "host_sample_sha256": "8b56d56e3b6c0f26598aac478b968331c8e08ab296784701434c8d44ecfefb16", "frame_summary_sha256": "51442265dba0131e7ec36d36ab0d7124bc912962e6be924d4dcfcb27ac6a768f", "samples": 15117},
+      "pacing": {"fps": 31.2, "mean_ms": 32.1, "p95_ms": 46.966209, "p99_ms": 49.594792},
+      "delta_vs_control_percent": {"fps": 6.849315, "mean_ms": -6.222612, "p95_ms": -3.689763},
+      "guest_cpu_share_percent": {"RHIThread": 33.93, "GameThread": 13.88, "RenderThread": 5.94, "virtio_gpu_transport": 18.52, "writew": 13.31, "ring_buffer_available_read": 2.46, "AddressSpaceStream_speculativeRead": 2.6}
+    }
+  ],
+  "interpretation": {
+    "high_confidence": "RHI submission and guest-host transport are material sampled CPU costs in the heavy proxy; the control attributes 31.49 percent to RHIThread and 16.44 percent to transport symbols.",
+    "rejected_mechanism": "inline submission increased RHI and transport sample shares while regressing FPS and tail latency.",
+    "not_promoted": "the isolated 32 KiB profile was faster in this one stage-1-8 capture but did not reduce transport sample share and had already failed the broader 1-5/1-8 promotion screen; 16 KiB remains selected.",
+    "late_pvp_next_step": "repeat the paired guest/host profile during the same late PvP combat after user authentication is restored."
+  }
+}

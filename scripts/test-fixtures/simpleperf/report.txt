@@ -1,0 +1,14 @@
+Cmdline: /system/bin/simpleperf record -e cpu-clock -g --duration 2 -p 2816 -o /data/local/tmp/test.data
+Arch: arm64
+Event: cpu-clock (type 1, config 0)
+Samples: 1000
+Event count: 250000000
+
+Overhead  Command                                    Pid   Tid   Symbol
+10.00%    RHIThread                                  2816  3746  writew
+5.00%     RHIThread                                  2816  3746  ring_buffer_available_read
+3.00%     RHIThread                                  2816  3746  AddressSpaceStream::speculativeRead(unsigned char*, unsigned long)
+4.00%     Foreground Work                            2816  3427  try_to_wake_up
+2.00%     Foreground Work                            2816  3427  __memcpy_aarch64_simd
+1.00%     GameThread                                 2816  3401  libUnreal.so[+1234]
+0.50%     RHIThread                                  2816  3746  rx::vk::Renderer::submitFrame()

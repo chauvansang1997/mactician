@@ -325,6 +325,15 @@ absolute frame cost repeatably. The on-demand submit thread and the 16 KiB
 write step therefore remain the local optima: the thread hides some boundary
 latency, while a larger packet step does not remove the relevant work.
 
+A reproducible parser now aggregates all exclusive rows instead of relying on
+the single largest stack. On the profiled control, RHIThread represented 31.49%
+of samples and transport-class symbols represented 16.44%. Inline submission
+raised those shares to 37.50% and 19.78% while FPS fell 9.59%. The 32 KiB run
+recorded 33.93%/18.52%; its single 1-8 capture was faster, but the mechanism did
+not lower sampled transport work and the broader screen had already failed.
+The versioned comparison, raw hashes, and limitations are in
+[`artifacts/simpleperf-stage1-8-transport-audit-20260815.json`](../artifacts/simpleperf-stage1-8-transport-audit-20260815.json).
+
 ### Auth-independent transport probe
 
 After the Riot session expired, further match A/B runs could not be performed

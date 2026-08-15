@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "captured_utc": "2026-08-15T00:12:52Z",
+  "purpose": "Isolate ANGLE Vulkan buffer-upload and barrier candidates from TFT menu animation and Android HWUI noise.",
+  "renderer_path": "Android GLES 3 -> guest ANGLE -> Vulkan ranchu/gfxstream -> MoltenVK -> Metal",
+  "attestation_requirements": {
+    "renderer_contains": [
+      "ANGLE",
+      "Vulkan"
+    ],
+    "mapped_libraries": [
+      "libGLESv2_angle.so",
+      "vulkan.ranchu.so"
+    ],
+    "forbidden_gl_errors": true
+  },
+  "probe": {
+    "apk_sha256": "cbd273efbdd2f651e5a0753b46568cdd760b7d821baeaa0093d3c3781ca6b355",
+    "manifest_sha256": "94a9d5e959237e595cb8918350bcb99d468b6a40837dcd211ca4378b05abb38a",
+    "activity_source_sha256": "24c015ca93066fc43cb9fc8258885f0a27ab35eace772e87c4266318b8bec158",
+    "build_tools_revision": "36.0.0",
+    "android_platform": "android-36",
+    "build_tools_archive_sha1": "199ae004f6f7ca98b6eae358f0bdb1e3c34271d1",
+    "platform_archive_sha1": "2c1a80af613b76af27e3ffbe5c1e0b92a3443a75"
+  },
+  "workload": {
+    "rounds": 20,
+    "discarded_warmup_rounds": 7,
+    "measured_rounds": 13,
+    "updates_per_round": 100000,
+    "bytes_per_update": 16384,
+    "finish_every_updates": 120,
+    "memory_barrier_every_updates": 64
+  },
+  "runs": [
+    {
+      "utc": "20260814T234746Z",
+      "candidate": "control",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1400.162,
+      "p95_ns_per_update": 1472.075,
+      "median_mib_per_second": 11159.426,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T234834Z",
+      "candidate": "preferCPUForBufferSubData",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferCPUForBufferSubData",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1449.717,
+      "p95_ns_per_update": 1555.496,
+      "median_mib_per_second": 10777.968,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T234935Z",
+      "candidate": "preferCPUForBufferSubData",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferCPUForBufferSubData",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1428.209,
+      "p95_ns_per_update": 1475.435,
+      "median_mib_per_second": 10940.277,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T235021Z",
+      "candidate": "control",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1419.932,
+      "p95_ns_per_update": 1711.407,
+      "median_mib_per_second": 11004.051,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T235121Z",
+      "candidate": "preferAggregateBarrierCalls",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferAggregateBarrierCalls",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1453.755,
+      "p95_ns_per_update": 1602.807,
+      "median_mib_per_second": 10748.028,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T235214Z",
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary:useVkEventForBufferBarrier",
+      "median_ns_per_update": 1572.946,
+      "p95_ns_per_update": 1687.848,
+      "median_mib_per_second": 9933.591,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T235317Z",
+      "candidate": "control",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1449.127,
+      "p95_ns_per_update": 1473.383,
+      "median_mib_per_second": 10782.353,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T235406Z",
+      "candidate": "preferAggregateBarrierCalls",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting:preferAggregateBarrierCalls",
+      "disabled_features": "preferSubmitAtFBOBoundary",
+      "median_ns_per_update": 1420.934,
+      "p95_ns_per_update": 1479.142,
+      "median_mib_per_second": 10996.290,
+      "gl_error_rounds": 0
+    },
+    {
+      "utc": "20260814T235452Z",
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "enabled_features": "exposeNonConformantExtensionsAndVersions:exposeES32ForTesting",
+      "disabled_features": "preferSubmitAtFBOBoundary:useVkEventForBufferBarrier",
+      "median_ns_per_update": 1427.105,
+      "p95_ns_per_update": 1673.359,
+      "median_mib_per_second": 10948.736,
+      "gl_error_rounds": 0
+    }
+  ],
+  "comparisons": [
+    {
+      "candidate": "preferCPUForBufferSubData",
+      "control_runs": [
+        "20260814T234746Z",
+        "20260814T235021Z"
+      ],
+      "candidate_runs": [
+        "20260814T234834Z",
+        "20260814T234935Z"
+      ],
+      "mean_control_median_ns_per_update": 1410.047,
+      "mean_candidate_median_ns_per_update": 1438.963,
+      "relative_time_change_percent": 2.051,
+      "decision": "rejected_slower"
+    },
+    {
+      "candidate": "preferAggregateBarrierCalls",
+      "control_runs": [
+        "20260814T235021Z",
+        "20260814T235317Z"
+      ],
+      "candidate_runs": [
+        "20260814T235121Z",
+        "20260814T235406Z"
+      ],
+      "mean_control_median_ns_per_update": 1434.530,
+      "mean_candidate_median_ns_per_update": 1437.345,
+      "relative_time_change_percent": 0.196,
+      "decision": "neutral_not_promoted"
+    },
+    {
+      "candidate": "disable-useVkEventForBufferBarrier",
+      "control_runs": [
+        "20260814T235021Z",
+        "20260814T235317Z"
+      ],
+      "candidate_runs": [
+        "20260814T235214Z",
+        "20260814T235452Z"
+      ],
+      "mean_control_median_ns_per_update": 1434.530,
+      "mean_candidate_median_ns_per_update": 1500.026,
+      "relative_time_change_percent": 4.566,
+      "decision": "rejected_slower_and_tail_worse"
+    }
+  ],
+  "excluded_pilot": {
+    "utc": "20260814T234548Z",
+    "reason": "Only one warmup round; thermal/startup outlier made p95 invalid. The app and runner were then changed to record and discard seven warmup rounds.",
+    "apk_sha256": "22a920f5f36d645392ac8f75087aa11d55f3bfba0f363188ca5dee0a755a93e6"
+  },
+  "limitations": [
+    "Synthetic buffer traffic does not reproduce TFT's draw mix, shader set, simulation, animation, or late-PvP visual load.",
+    "The benchmark can reject transport candidates that lose on their intended primitive; it cannot by itself promote a game profile.",
+    "A real late-PvP visual A/B remains required for candidates that alter Unreal content or scheduling."
+  ]
+}

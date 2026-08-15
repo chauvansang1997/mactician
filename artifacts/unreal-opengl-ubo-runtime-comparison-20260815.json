@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+  "runs": [
+    {
+      "variant": "control",
+      "profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+      "process_pid": 2993,
+      "load_bias": "0x70e6402000",
+      "ubo_pool_size": 0,
+      "ubo_direct_write": 0
+    },
+    {
+      "variant": "ubo_direct_write",
+      "profile_sha256": "fe480214929c713f9e302bf9fde7abcb66d424979deae7e2c09b8c0428314ee9",
+      "process_pid": 2872,
+      "load_bias": "0x6ccc00a000",
+      "ubo_pool_size": 0,
+      "ubo_direct_write": 1
+    },
+    {
+      "variant": "ubo_pool_16m",
+      "profile_sha256": "1799397dd17f53462b306f3c9d564b05da645c228f0b660f5a0903c5932e9540",
+      "process_pid": 2920,
+      "load_bias": "0x6eb1810000",
+      "ubo_pool_size": 16777216,
+      "ubo_direct_write": 0
+    }
+  ],
+  "invariants": {
+    "unchanged_values": {
+      "OpenGL.UseStagingBuffer": 0,
+      "OpenGL.UseMapBuffer": 1,
+      "OpenGL.MaxSubDataSize": 0,
+      "OpenGL.RebindTextureBuffers": 0,
+      "OpenGL.UseBufferDiscard": 1,
+      "OpenGL.UseUnsynchronizedBufferMapping": 1,
+      "OpenGL.UsePersistentMappingStagingBuffer": 1
+    },
+    "candidate_delta_count_per_run": 1,
+    "runtime_isolation_confirmed": true
+  },
+  "boundary": "The comparison proves post-initialization configuration isolation only. It does not establish late-PvP FPS, frame pacing, or visual correctness."
+}

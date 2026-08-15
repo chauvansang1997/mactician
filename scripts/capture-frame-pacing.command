@@ -48,6 +48,34 @@ validate_label() {
     fi
 }
 
+read_host_power_source() {
+    pmset -g ps 2>/dev/null \
+        | sed -n "1s/^Now drawing from '\(.*\)'$/\1/p"
+}
+
+read_host_power_mode() {
+    local wanted_source="$1"
+    pmset -g custom 2>/dev/null \
+        | awk -v wanted="$wanted_source" '
+            /^[[:alnum:] ]+Power:$/ {
+                current = $0
+                sub(/:$/, "", current)
+                next
+            }
+            current == wanted && $1 == "powermode" { print $2; exit }
+          '
+}
+
+read_host_thermal_state() {
+    local thermal_state
+    thermal_state="$(
+        pmset -g therm 2>/dev/null \
+            | tr '\n' ' ' \
+            | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
+    )"
+    [[ -n "$thermal_state" ]] && print -r -- "$thermal_state" || print unavailable
+}
+
 validate_label TFT_SCENE "$SCENE"
 validate_label TFT_VARIANT "$VARIANT"
 
@@ -197,6 +225,10 @@ if ! validate_battle_scene \
 fi
 sleep 1
 
+readonly HOST_POWER_SOURCE_BEFORE="$(read_host_power_source)"
+readonly HOST_POWER_MODE_BEFORE="$(read_host_power_mode "$HOST_POWER_SOURCE_BEFORE")"
+readonly HOST_THERMAL_STATE_BEFORE="$(read_host_thermal_state)"
+
 print 'round,frame,delta_ms' > "$OUTPUT_DIR/frame-times.csv"
 print 'round,start_monotonic_seconds,end_monotonic_seconds' > "$OUTPUT_DIR/round-times.csv"
 zmodload zsh/datetime
@@ -224,6 +256,19 @@ for (( round = 1; round <= ROUNDS; round++ )); do
         }
     ' "$raw_file" >> "$OUTPUT_DIR/frame-times.csv"
 done
+
+readonly HOST_POWER_SOURCE_AFTER="$(read_host_power_source)"
+readonly HOST_POWER_MODE_AFTER="$(read_host_power_mode "$HOST_POWER_SOURCE_AFTER")"
+readonly HOST_THERMAL_STATE_AFTER="$(read_host_thermal_state)"
+HOST_CONDITIONS_STABLE=no
+if [[ -n "$HOST_POWER_SOURCE_BEFORE" \
+        && -n "$HOST_POWER_MODE_BEFORE" \
+        && "$HOST_THERMAL_STATE_BEFORE" != unavailable \
+        && "$HOST_POWER_SOURCE_BEFORE" == "$HOST_POWER_SOURCE_AFTER" \
+        && "$HOST_POWER_MODE_BEFORE" == "$HOST_POWER_MODE_AFTER" \
+        && "$HOST_THERMAL_STATE_BEFORE" == "$HOST_THERMAL_STATE_AFTER" ]]; then
+    HOST_CONDITIONS_STABLE=yes
+fi
 
 capture_screenshot "$OUTPUT_DIR/after.png"
 if ! validate_battle_scene \
@@ -409,14 +454,6 @@ readonly CLASSIFIED_STAGE_BEFORE="$("$JQ" -r '.stage // ""' "$OUTPUT_DIR/classif
 readonly CLASSIFIED_STAGE_AFTER="$("$JQ" -r '.stage // ""' "$OUTPUT_DIR/classification-after.json")"
 readonly CLASSIFIED_PHASE_BEFORE="$("$JQ" -r '.phase // ""' "$OUTPUT_DIR/classification-before.json")"
 readonly CLASSIFIED_PHASE_AFTER="$("$JQ" -r '.phase // ""' "$OUTPUT_DIR/classification-after.json")"
-readonly HOST_POWER_SOURCE="$(pmset -g ps 2>/dev/null | sed -n "1s/^Now drawing from '\(.*\)'$/\1/p")"
-readonly HOST_POWER_MODE="$(
-    pmset -g custom 2>/dev/null \
-        | awk '/^AC Power:/{ ac=1; next } ac && $1 == "powermode" { print $2; exit }'
-)"
-HOST_THERMAL_STATE="$(pmset -g therm 2>/dev/null | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
-[[ -z "$HOST_THERMAL_STATE" ]] && HOST_THERMAL_STATE="unavailable"
-
 EMULATOR_BIN="$(tft_resolve_emulator)"
 EMULATOR_RUNTIME_ROOT="${EMULATOR_BIN:A:h}"
 EMULATOR_QEMU="$EMULATOR_RUNTIME_ROOT/qemu/darwin-aarch64/qemu-system-aarch64"
@@ -461,9 +498,13 @@ EMULATOR_GFXSTREAM_SHA="missing"
     print "angle_features_enabled=$("$ADB" -s "$SERIAL" shell getprop debug.angle.feature_overrides_enabled 2>/dev/null | tr -d '\r')"
     print "angle_features_disabled=$("$ADB" -s "$SERIAL" shell getprop debug.angle.feature_overrides_disabled 2>/dev/null | tr -d '\r')"
     print "mount_info=$MOUNT_INFO"
-    print "host_power_source=${HOST_POWER_SOURCE:-unknown}"
-    print "host_power_mode=${HOST_POWER_MODE:-unknown}"
-    print "host_thermal_state=$HOST_THERMAL_STATE"
+    print "host_conditions_stable=$HOST_CONDITIONS_STABLE"
+    print "host_power_source_before=${HOST_POWER_SOURCE_BEFORE:-unknown}"
+    print "host_power_source_after=${HOST_POWER_SOURCE_AFTER:-unknown}"
+    print "host_power_mode_before=${HOST_POWER_MODE_BEFORE:-unknown}"
+    print "host_power_mode_after=${HOST_POWER_MODE_AFTER:-unknown}"
+    print "host_thermal_state_before=$HOST_THERMAL_STATE_BEFORE"
+    print "host_thermal_state_after=$HOST_THERMAL_STATE_AFTER"
     print "game_total_pss_kb=$TOTAL_PSS_KB"
     print "game_total_rss_kb=$TOTAL_RSS_KB"
     print "emulator_binary=$EMULATOR_BIN"
@@ -490,9 +531,13 @@ EMULATOR_GFXSTREAM_SHA="missing"
     --arg phase_after "${CLASSIFIED_PHASE_AFTER:-none}" \
     --arg display "$("$ADB" -s "$SERIAL" shell wm size 2>/dev/null | tr -d '\r')" \
     --arg density "$("$ADB" -s "$SERIAL" shell wm density 2>/dev/null | tr -d '\r')" \
-    --arg power_source "${HOST_POWER_SOURCE:-unknown}" \
-    --arg power_mode "${HOST_POWER_MODE:-unknown}" \
-    --arg thermal_state "$HOST_THERMAL_STATE" \
+    --arg host_conditions_stable "$HOST_CONDITIONS_STABLE" \
+    --arg power_source_before "${HOST_POWER_SOURCE_BEFORE:-unknown}" \
+    --arg power_source_after "${HOST_POWER_SOURCE_AFTER:-unknown}" \
+    --arg power_mode_before "${HOST_POWER_MODE_BEFORE:-unknown}" \
+    --arg power_mode_after "${HOST_POWER_MODE_AFTER:-unknown}" \
+    --arg thermal_state_before "$HOST_THERMAL_STATE_BEFORE" \
+    --arg thermal_state_after "$HOST_THERMAL_STATE_AFTER" \
     --arg emulator_binary "$EMULATOR_BIN" \
     --arg emulator_qemu_sha256 "$EMULATOR_QEMU_SHA" \
     --arg emulator_gfxstream_sha256 "$EMULATOR_GFXSTREAM_SHA" \
@@ -543,7 +588,16 @@ EMULATOR_GFXSTREAM_SHA="missing"
             emulator_qemu_sha256: $emulator_qemu_sha256,
             emulator_gfxstream_sha256: $emulator_gfxstream_sha256
         },
-        host: {power_source: $power_source, power_mode: $power_mode, thermal_state: $thermal_state},
+        host: {
+            stable: ($host_conditions_stable == "yes"),
+            power_source: $power_source_before,
+            power_mode: $power_mode_before,
+            thermal_state: $thermal_state_before,
+            before: {power_source: $power_source_before, power_mode: $power_mode_before,
+                thermal_state: $thermal_state_before},
+            after: {power_source: $power_source_after, power_mode: $power_mode_after,
+                thermal_state: $thermal_state_after}
+        },
         memory: {game_total_pss_kb: $total_pss_kb, game_total_rss_kb: $total_rss_kb},
         pacing: {
             samples: $samples,

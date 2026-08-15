@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "unreal_uniform_buffer_pooling_runtime_audit",
+  "generated_utc": "2026-08-15T05:07:00Z",
+  "purpose": "Determine whether Unreal's general uniform-buffer pooling path is already effective before interpreting the isolated OpenGL UBO-pool capacity candidate.",
+  "client": {
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "riot_build": "18.1.0.5300314",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "angle_overlay_sha256": "632fc004346b1cdc62d397b234e89b68e9833d0451974963b58e7773be4bfb25"
+  },
+  "methodology": {
+    "profile": "A four-line Android_Codex profile inheriting Android_MatchedFragments and setting only r.UniformBufferPooling=1.",
+    "profile_path": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.uniform-buffer-pooling-query.ini",
+    "profile_sha256": "fa81b21d5da493a455e78c18889bb53bfa99bdd09cf72d17ee64cb7bb95bdb08",
+    "explicit_cvar_count": 1,
+    "startup_transition_rule": "The left side of Riot's DeviceProfile transition is the effective value immediately before this profile writes the requested value.",
+    "scope": "Runtime configuration, boot, crash, and rollback evidence only; no TFT FPS or combat rendering is measured."
+  },
+  "runtime_observation": {
+    "cvar": "r.UniformBufferPooling",
+    "requested_value_u32": 1,
+    "effective_value_before_profile_u32": 1,
+    "effective_value_after_profile_u32": 1,
+    "startup_transition": "1 -> 1",
+    "startup_log_line": "LogDeviceProfileManager: Pushing Device Profile CVar: [[r.UniformBufferPooling:1 -> 1]]",
+    "startup_log_sha256": "e67e9a15abe920f3316bc815f531ba30a0821d130bb4f88b68184de636a94697",
+    "tft_pid": 2747,
+    "boot_completed_ms": 17219,
+    "profile_mount_sha256": "fa81b21d5da493a455e78c18889bb53bfa99bdd09cf72d17ee64cb7bb95bdb08",
+    "crash_buffer_lines": 0,
+    "tombstone_files": 12
+  },
+  "excluded_diagnostics": [
+    {
+      "method": "UECommandLine -ExecCmds with individual CVar names",
+      "result": "Command line was parsed and hash-attested, but the expired-login path did not emit console results."
+    },
+    {
+      "method": "UECommandLine -ExecCmds ending in DumpCVars",
+      "result": "Command line was parsed and hash-attested, but the expired-login path did not reach the point that emits the dump."
+    }
+  ],
+  "rollback_attestation": {
+    "intentional_interrupt": true,
+    "adb_devices": 0,
+    "emulator_processes": 0,
+    "avd_lock_present": false,
+    "config_transport": "pipe",
+    "generated_transport": "pipe"
+  },
+  "decision": {
+    "general_pooling": "already_effective: do not add r.UniformBufferPooling=1 to a performance profile because it is a no-op",
+    "opengl_pool_candidate": "retain_priority_1_as_isolated_capacity_change: OpenGL.UBOPoolSize remains the only UBO-pooling delta, from 0 to 16777216 bytes",
+    "synthetic_mapping": "strengthened_but_not_proven: TFT executes an enabled pooling architecture, but the GLES map-once microbenchmark is still not Unreal/TFT FPS evidence",
+    "candidate_added": false,
+    "promotion": "none",
+    "required_next": "Matched authenticated late-PvP control/candidate blocks with FPS p50/p95/p99, RHIThread, memory, visual, and crash gates."
+  }
+}

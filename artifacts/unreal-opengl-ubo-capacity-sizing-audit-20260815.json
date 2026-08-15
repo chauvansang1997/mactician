@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "kind": "unreal_opengl_ubo_capacity_sizing_audit",
+  "generated_utc": "2026-08-15T05:30:00Z",
+  "purpose": "Separate evidence for pooled UBO update strategy from evidence for the proposed 16 MiB Unreal OpenGL pool capacity.",
+  "source": {
+    "binary": "libUnreal.so copied from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "disassembler": "Apple LLVM objdump",
+    "synthetic_activity": "artifacts/android-gles-ubo-stress-app/src/dev/sergeinaumov/mactician/glesubo/UboStressActivity.java",
+    "synthetic_activity_sha256": "ec1f074e2d1ce10c87fea872252b75a4a48cd80be38235c7ba445be6885aa754"
+  },
+  "exact_binary_observations": {
+    "cvar_registration": {
+      "name": "OpenGL.UBOPoolSize",
+      "name_vma": "0x3511d4",
+      "registration_xref": "0x7008db0",
+      "storage_vma": "0xbc7dbf4",
+      "compiled_referenced_default_u32": 0,
+      "help": "Size of the UBO pool, 0 disables UBO Pool"
+    },
+    "uniform_buffer_allocation": {
+      "gl_target": "0x8a11",
+      "gl_target_name": "GL_UNIFORM_BUFFER",
+      "size_load_xref": "0x700d3f8",
+      "gl_buffer_data_xref": "0x700d414",
+      "observation": "The stripped OpenGL code allocates a GL uniform buffer using a size held in its allocation object.",
+      "qualification": "Static data flow did not prove that this particular allocation object's size is the OpenGL.UBOPoolSize value; do not use this xref as capacity validation."
+    },
+    "runtime_values": {
+      "general_uniform_buffer_pooling_effective_u32": 1,
+      "general_pooling_transition": "1 -> 1",
+      "opengl_pool_control_u32": 0,
+      "opengl_pool_candidate_u32": 16777216,
+      "opengl_pool_candidate_live_storage_verified": true
+    },
+    "official_api_cross_check": {
+      "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/API/Runtime/OpenGLDrv/FOpenGLUniformBuffer?application_version=5.4",
+      "fields": ["Resource", "Offset", "RangeSize", "AllocatedSize", "PersistentlyMappedBuffer"],
+      "use": "Comparative mechanism context only; current Epic API documentation is not proof of the exact stripped Riot implementation."
+    }
+  },
+  "synthetic_scope": {
+    "source_lines": {
+      "pooled_buffer_size": 148,
+      "per_frame_buffer_orphan": [210, 213],
+      "single_whole_buffer_map": [214, 229],
+      "per_draw_range_bind": [253, 255],
+      "draw_count_bound": 69
+    },
+    "ubo_alignment_bytes": 16,
+    "ubo_stride_bytes": 32,
+    "measured_working_sets": [
+      {"draws_per_frame": 256, "pooled_buffer_bytes": 8192, "winning_brackets": 2},
+      {"draws_per_frame": 512, "pooled_buffer_bytes": 16384, "winning_brackets": 4},
+      {"draws_per_frame": 1024, "pooled_buffer_bytes": 32768, "winning_brackets": 2}
+    ],
+    "total_winning_brackets": 8,
+    "largest_measured_working_set_bytes": 32768,
+    "probe_draw_count_ceiling": 2048,
+    "probe_working_set_ceiling_bytes": 65536,
+    "candidate_capacity_bytes": 16777216,
+    "candidate_to_largest_measured_ratio": 512,
+    "candidate_to_probe_ceiling_ratio": 256,
+    "what_the_probe_establishes": "On the attested ANGLE-to-Vulkan path, one map/fill plus per-draw range binding is consistently faster than one glBufferSubData update per draw for these exact working sets.",
+    "what_the_probe_does_not_establish": [
+      "TFT frame rate or late-PvP frame tails",
+      "TFT's live uniform-buffer bytes per frame or in-flight pool pressure",
+      "that Unreal uses the probe's exact orphan/map policy",
+      "that 16 MiB is the smallest sufficient capacity"
+    ]
+  },
+  "decision": {
+    "queue_order": "retain_priority_1_unpromoted",
+    "strategy_confidence": "synthetic_repeatable",
+    "capacity_size_confidence": "unsized_hypothesis",
+    "profile_change": "OpenGL.UBOPoolSize:0 -> 16777216 only",
+    "candidate_added": false,
+    "promotion": "none",
+    "why_no_smaller_profile_was_added": "Without live pool-pressure or fallback evidence, a smaller pool is not known to be safer; it can trade memory for exhaustion, fallback, or reuse stalls.",
+    "required_sequence": [
+      "Run at least two independent, profile-attested late-PvP Performance Max control sessions and two 16 MiB candidate sessions under stable host power and thermal brackets.",
+      "Require improved median and p95/p99 combat frame time with no rendering, crash, or memory regression before treating pool enablement as effective.",
+      "Only after an efficacy win, compare smaller 4/8 MiB capacities against 16 MiB to find the lowest non-regressing capacity."
+    ]
+  }
+}

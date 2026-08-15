@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "client": {
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "riot_build": "18.1.0.5300314",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile_sha256": "10dfd8967f4b13d90ab93a4ce37500be153671f396469b4748538bdaeab186b2"
+  },
+  "methodology": {
+    "screen": "expired-login screen after separate cold AVD boots",
+    "memory": "three post-ready Android dumpsys meminfo snapshots per variant at the same screen and timing range",
+    "crash_gate": "empty Android crash buffer and unchanged 12-file tombstone inventory",
+    "scope": "startup, memory, crash, and configuration isolation only; no heavy draw workload or TFT FPS is measured"
+  },
+  "runs": [
+    {
+      "variant": "candidate_parallel_dynamic_mesh",
+      "dynamic_mesh_elements_parallel": 1,
+      "profile_sha256": "10dfd8967f4b13d90ab93a4ce37500be153671f396469b4748538bdaeab186b2",
+      "boot_ms": 18257,
+      "process_pid": 2626,
+      "memory_samples_kib": [
+        {
+          "pss": 865176,
+          "rss": 1020580,
+          "swap": 0
+        },
+        {
+          "pss": 864732,
+          "rss": 1020336,
+          "swap": 0
+        },
+        {
+          "pss": 864705,
+          "rss": 1020304,
+          "swap": 0
+        }
+      ],
+      "mean_memory_kib": {
+        "pss": 864871,
+        "rss": 1020406.666667,
+        "swap": 0
+      },
+      "startup_log_sha256": "f3b9d98bd935e8ff3246a696f29d3bb6c10345c3d9aa6f502b23bd2f4b1108b8",
+      "startup_transition": "0 -> 1",
+      "crash_buffer_empty": true,
+      "tombstone_file_count": 12,
+      "fresh_tombstone": false
+    },
+    {
+      "variant": "control_performance_max",
+      "dynamic_mesh_elements_parallel": 0,
+      "profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+      "boot_ms": 18186,
+      "process_pid": 2713,
+      "memory_samples_kib": [
+        {
+          "pss": 866565,
+          "rss": 1021568,
+          "swap": 0
+        },
+        {
+          "pss": 865500,
+          "rss": 1020812,
+          "swap": 0
+        },
+        {
+          "pss": 865768,
+          "rss": 1021080,
+          "swap": 0
+        }
+      ],
+      "mean_memory_kib": {
+        "pss": 865944.333333,
+        "rss": 1021153.333333,
+        "swap": 0
+      },
+      "startup_log_sha256": "ae3e7132e9a30db4eaea119597c0c1b8624c4711976bf1cd7e3d4010f004e32e",
+      "startup_transition": "1 retained",
+      "crash_buffer_empty": true,
+      "tombstone_file_count": 12,
+      "fresh_tombstone": false
+    }
+  ],
+  "comparison": {
+    "candidate_vs_control_mean_pss_percent": -0.123949,
+    "candidate_vs_control_mean_rss_percent": -0.07312,
+    "candidate_vs_control_boot_percent": 0.39041,
+    "cold_gate": "pass: startup, memory, and crash behavior are directionally neutral"
+  },
+  "decision": {
+    "status": "queued_unpromoted",
+    "promotion": "none",
+    "required_next": "matched late-PvP control/candidate blocks with GameThread, RenderThread, RHIThread, task, FPS, p95, and p99 evidence",
+    "reason": "The login screen has no dense player combat or dynamic mesh workload, so it cannot establish an FPS benefit."
+  }
+}

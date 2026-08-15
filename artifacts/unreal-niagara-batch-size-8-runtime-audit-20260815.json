@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "source": {
+    "serial": "emulator-5582",
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "process_id": 2754,
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "load_bias": "0x76e0e0a000"
+  },
+  "methodology": {
+    "mapping": "offset-zero libUnreal.so mapping plus static ELF VMA",
+    "read": "four bytes from /proc/PID/mem through root toybox xxd",
+    "decode": "unsigned little-endian 32-bit integer",
+    "scope": "live referenced storage only; semantic interpretation still depends on the CVar type and call sites"
+  },
+  "values": [
+    {
+      "cvar": "fx.Niagara.SystemSimulation.AllowASync",
+      "storage_vma": "0xb9fdb30",
+      "runtime_address": "0x76ec807b30",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.TickBatchSize",
+      "storage_vma": "0xb9fdb38",
+      "runtime_address": "0x76ec807b38",
+      "raw_le_hex": "08000000",
+      "value_u32": 8
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.TickBatchMode",
+      "storage_vma": "0xb9fdb3c",
+      "runtime_address": "0x76ec807b3c",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.ConcurrentGPUTickInit",
+      "storage_vma": "0xb9fdb40",
+      "runtime_address": "0x76ec807b40",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.BatchGPUTickSubmit",
+      "storage_vma": "0xb9fdb44",
+      "runtime_address": "0x76ec807b44",
+      "raw_le_hex": "01000000",
+      "value_u32": 1
+    }
+  ]
+}

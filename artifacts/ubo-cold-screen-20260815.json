@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "purpose": "Cold-start safety and memory screen for two isolated Unreal OpenGL UBO hypotheses before any authenticated late-PvP A/B.",
+  "fixed_stack": {
+    "guest_renderer": "Unreal OpenGL ES -> guest ANGLE -> Vulkan ranchu",
+    "host_renderer": "gfxstream -> Vulkan -> MoltenVK -> Metal",
+    "framebuffer": "2560x1440@416dpi@60",
+    "asg_write_step_bytes": 16384,
+    "angle_disabled_features": "preferSubmitAtFBOBoundary",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef"
+  },
+  "runs": [
+    {
+      "variant": "ubo_direct_write",
+      "profile_sha256": "fe480214929c713f9e302bf9fde7abcb66d424979deae7e2c09b8c0428314ee9",
+      "boot_completed_ms": 18173,
+      "tft_pid": 2620,
+      "thread_count": 125,
+      "rss_kib": 968668,
+      "pss_kib": 814214,
+      "swap_kib": 0,
+      "crash_buffer_lines": 0,
+      "tombstone_count": 12,
+      "startup_transition": "OpenGL.UBODirectWrite:0 -> 1",
+      "startup_log_sha256": "a512f205fd06e7f26880fc91d9c88d427468536e1593c3fd42163f1bbfe0b5c1"
+    },
+    {
+      "variant": "ubo_pool_16m",
+      "profile_sha256": "1799397dd17f53462b306f3c9d564b05da645c228f0b660f5a0903c5932e9540",
+      "boot_completed_ms": 17780,
+      "tft_pid": 2961,
+      "thread_count": 124,
+      "rss_kib": 969912,
+      "pss_kib": 815031,
+      "swap_kib": 0,
+      "crash_buffer_lines": 0,
+      "tombstone_count": 12,
+      "startup_transition": "OpenGL.UBOPoolSize:0 -> 16777216",
+      "startup_log_sha256": "5ffbd9e91dfb8944f7f86a84e881337ac7a59389b4440669cc3782532d0173c3"
+    }
+  ],
+  "interpretation": {
+    "startup": "Both candidates cold-booted to a live TFT process and were applied by DeviceProfile priority.",
+    "memory": "The 16-MiB setting did not preallocate 16 MiB at this login-screen sample; its RSS was 1244 KiB and PSS 817 KiB above the direct-write run, which is within uncontrolled cold-start variation and is not a matched control result.",
+    "stability": "Both samples had an empty Android crash buffer and the same pre-existing tombstone count.",
+    "boundary": "No FPS, frame pacing, render correctness, in-combat allocation behavior, or late-PvP benefit is established. Both remain unpromoted."
+  }
+}

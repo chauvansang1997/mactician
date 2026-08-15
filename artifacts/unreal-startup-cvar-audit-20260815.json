@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "client": {
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "riot_build": "18.1.0.5300314",
+    "original_base_sha256": "3afbfa3dedabf8e75b79c64a06c469376ee79edce67fdd687ca4fb47f704c35a",
+    "angle_overlay_source_sha256": "632fc004346b1cdc62d397b234e89b68e9833d0451974963b58e7773be4bfb25",
+    "query_overlay_sha256": "28093154240ff7d02a73c402a1d199f7f045cc4dda489822410166b388b375af",
+    "performance_max_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef"
+  },
+  "method": {
+    "source": "TFT.log",
+    "log_sections": [
+      "LogConfig: Set CVar",
+      "LogDeviceProfileManager: Pushing Device Profile CVar"
+    ],
+    "exec_cmds_was_parsed": true,
+    "exec_cmds_responses_were_logged": false,
+    "dump_cvars_followup": {
+      "csv_overlay_sha256": "d758d8d1eddd682336459e2cbca03ff92e76910872e371c391fb0ed6d33bafeb",
+      "csv_startup_log_sha256": "7bec6e00ad01ee44b954c3d34e0adb63d926e0823502f488e894cd4f1501ee21",
+      "log_overlay_sha256": "f369caa7b09b54d4e98b3fe3f55b8a6828b437824db4d97d5dd773e0ed3adbfc",
+      "log_startup_log_sha256": "872ee0b04ec587876160550e9e77e045e216b822190dcd16097304a19a4a58a1",
+      "command_line_parsed": true,
+      "csv_files_created": false,
+      "log_output_created": false,
+      "decision": "Shipping startup ExecCmds cannot attest current CVar values in this client; remove the non-working dump extension."
+    },
+    "note": "Only startup config and DeviceProfile transition lines are treated as evidence. Static binary presence, unlogged ExecCmds, and unexecuted DumpCVars are not treated as runtime values."
+  },
+  "observations": {
+    "base_config": {
+      "a.Budget.Enabled": 1,
+      "p.ClothPhysics": 0,
+      "p.AnimDynamics": 0,
+      "p.AnimDynamicsWind": 0,
+      "r.HZBOcclusion": 0,
+      "r.AllowOcclusionQueries": 0,
+      "r.Visibility.DynamicMeshElements.Parallel": 0
+    },
+    "scalability_side_effects": {
+      "a.Budget.BudgetMs_after_sg.ViewDistanceQuality_0": 1.5,
+      "r.EmitterSpawnRateScale_after_sg.EffectsQuality_0": 0.125,
+      "post_device_profile_saved_quality_sections": 2,
+      "post_profile_unpinned_changes": {
+        "a.Budget.BudgetMs": "1.5 -> 1.85",
+        "r.Upscale.Quality": "1 -> 2",
+        "r.Streaming.MaxNumTexturesToStreamPerFrame": "5 -> 10",
+        "r.TranslucencyLightingVolume.Dim": "24 -> 48",
+        "r.SSS.Scale": "0 -> 1",
+        "r.SSS.SampleSet": "0 -> 1",
+        "r.SSGI.Quality": "0 -> 2",
+        "foliage.DensityScale": "0.5 -> 1.0",
+        "grass.DensityScale": "0.5 -> 1.0",
+        "r.HairStrands.Visibility.MSAA.SamplePerPixel": "1 -> 4",
+        "r.AnisotropicMaterials": "0 -> 1"
+      },
+      "interpretation": "Saved quality level 2 is reapplied after the DeviceProfile. Explicit DeviceProfile CVars keep their low values; unpinned stock-low scalability values are overwritten."
+    },
+    "performance_max_transitions": {
+      "r.RHICmdBypass": "0 -> 1",
+      "r.SkeletalMeshLODBias": "0 -> 2",
+      "r.ParticleLODBias": "0 -> 2",
+      "r.EmitterSpawnRateScale": "0.125 -> 0.5",
+      "fx.Niagara.QualityLevel": "0 -> 0",
+      "Android.OpenGL.NumRemoteProgramCompileServices": "4 -> 4"
+    }
+  },
+  "decisions": {
+    "performance_max_no_occlusion": "remove_noop_candidate",
+    "force_animation_budget_or_uro": "reject_already_enabled_and_previous_forced_uro_was_worse",
+    "emitter_spawn_rate_0_125": "add_unpromoted_late_pvp_visual_validation_candidate",
+    "parallel_dynamic_mesh_gather": "add_unpromoted_late_pvp_cpu_candidate",
+    "pin_stock_low_scalability_values": "add_unpromoted_candidate_and_verify_startup_precedence_before_battle_ab"
+  },
+  "scalability_pins_startup_verification": {
+    "profile_sha256": "67d361705f32b8c8d7766d26fcced1dc969b9b96e905b9bbc9d551ddf476974d",
+    "stock_low_pins": 14,
+    "device_profile_precedence_verified": true,
+    "verified_final_values": {
+      "a.Budget.BudgetMs": 1.5,
+      "r.MotionBlur.HalfResGather": 1,
+      "r.Upscale.Quality": 1,
+      "r.Streaming.MaxNumTexturesToStreamPerFrame": 5,
+      "r.TranslucencyLightingVolume.Dim": 24,
+      "r.SSS.Scale": 0,
+      "r.SSS.SampleSet": 0,
+      "r.SSS.Quality": 0,
+      "r.SSS.HalfRes": 1,
+      "r.SSGI.Quality": 0,
+      "foliage.DensityScale": 0.5,
+      "grass.DensityScale": 0.5,
+      "r.HairStrands.Visibility.MSAA.SamplePerPixel": 1,
+      "r.AnisotropicMaterials": 0
+    },
+    "machine_readable_audit": "artifacts/unreal-startup-profile-audit-scalability-pins-20260815.json",
+    "scope": "Boot compatibility and CVar precedence only; no FPS gain is credited before matched late-PvP A/B."
+  },
+  "rollback": {
+    "device_stopped": true,
+    "avd_config_restored_to_pipe": true,
+    "transaction_markers_absent": true,
+    "guest_mount_unmount_warning_observed_after_shutdown": true
+  }
+}

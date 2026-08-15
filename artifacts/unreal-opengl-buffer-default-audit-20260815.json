@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so loaded by the live TFT PBE process and copied from its installed native-library path",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false
+  },
+  "methodology": {
+    "name_lookup": "exact UTF-16LE CVar name",
+    "xref": "AArch64 ADRP/ADD reference passed as x1 to the console-variable reference constructor at 0x32635cc",
+    "default_decode": "x2 points either into ELF .data (VMA 0xb9e1c40-0xba34ae0), whose four file-backed bytes are decoded as little-endian uint32, or into zero-initialized .bss (VMA 0xba34b00-0xbdef188)",
+    "help_decode": "UTF-16LE string addressed by x3 in the same registration sequence",
+    "scope": "compiled referenced defaults only; startup transition logs are required before treating a value as the effective Android default"
+  },
+  "observations": [
+    {
+      "cvar": "OpenGL.UseStagingBuffer",
+      "name_vma": "0x22fa50",
+      "registration_xref": "0x4abf7e0",
+      "default_storage_vma": "0xbc7ccdc",
+      "compiled_referenced_default": 0,
+      "help": "Enables maps of dynamic vertex buffers to go to a staging buffer"
+    },
+    {
+      "cvar": "OpenGL.UseMapBuffer",
+      "name_vma": "0x22d984",
+      "registration_xref": "0x4abf840",
+      "default_storage_vma": "0xb9f9e8c",
+      "compiled_referenced_default": 1,
+      "help": "If true, use glMapBuffer otherwise use glBufferSubdata."
+    },
+    {
+      "cvar": "OpenGL.MaxSubDataSize",
+      "name_vma": "0x3545b8",
+      "registration_xref": "0x4abf8a8",
+      "default_storage_vma": "0xbc7cce4",
+      "compiled_referenced_default": 0,
+      "help": "Maximum amount of data to send to glBufferSubData in one call"
+    },
+    {
+      "cvar": "OpenGL.RebindTextureBuffers",
+      "name_vma": "0x14bdc0",
+      "registration_xref": "0x4abf8dc",
+      "default_storage_vma": "0xbc7cce8",
+      "compiled_referenced_default": 0,
+      "help": "If true, rebind GL_TEXTURE_BUFFER's to their GL_TEXTURE name whenever the buffer is modified."
+    },
+    {
+      "cvar": "OpenGL.UseBufferDiscard",
+      "name_vma": "0x415dec",
+      "registration_xref": "0x4abf910",
+      "default_storage_vma": "0xb9f9e90",
+      "compiled_referenced_default": 1,
+      "help": "If true, use dynamic buffer orphaning hint."
+    },
+    {
+      "cvar": "OpenGL.UseUnsynchronizedBufferMapping",
+      "name_vma": "0x324aae",
+      "registration_xref": "0x4abf944",
+      "default_storage_vma": "0xb9f9e94",
+      "compiled_referenced_default": 1,
+      "help": "If true, use GL_MAP_UNSYNCHRONIZED_BIT when mapping write only buffers."
+    },
+    {
+      "cvar": "OpenGL.UsePersistentMappingStagingBuffer",
+      "name_vma": "0x22f9fe",
+      "registration_xref": "0x4abf978",
+      "default_storage_vma": "0xb9f9e88",
+      "compiled_referenced_default": 1,
+      "help": "If true, it will use persistent mapping for the Staging Buffer."
+    },
+    {
+      "cvar": "OpenGL.UBOPoolSize",
+      "name_vma": "0x3511d4",
+      "registration_xref": "0x7008db0",
+      "default_storage_vma": "0xbc7dbf4",
+      "compiled_referenced_default": 0,
+      "help": "Size of the UBO pool, 0 disables UBO Pool"
+    },
+    {
+      "cvar": "OpenGL.UBODirectWrite",
+      "name_vma": "0x36e87e",
+      "registration_xref": "0x7008de4",
+      "default_storage_vma": "0xbc7dbf8",
+      "compiled_referenced_default": 0,
+      "help": "Enables direct writes to the UBO via Buffer Storage"
+    }
+  ],
+  "decision": {
+    "OpenGL.UBODirectWrite": "cold_boot_existing_unpromoted_one_factor_candidate_and_require_startup_transition_attestation",
+    "OpenGL.UBOPoolSize": "screen_a_16_MiB_one_factor_candidate_with_memory_and_startup_gates",
+    "mapping_and_orphaning_flags": "do_not_add_enablement_candidates: map-buffer, discard, unsynchronized mapping, and persistent-mapping capability are already compiled 1 and were confirmed 1 in live storage; staging is separately compiled and live 0",
+    "promotion_boundary": "No static default or cold boot establishes late-PvP FPS or rendering correctness. Promotion requires matched late-PvP A/B plus visual and crash gates."
+  }
+}

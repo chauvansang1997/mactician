@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "kind": "unreal_animation_budget_policy_static_audit",
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so copied from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "binary_embedded": false,
+    "startup_cross_check": "artifacts/unreal-startup-cvar-audit-20260815.json",
+    "candidate_startup_cross_check": "artifacts/unreal-startup-profile-audit-animation-budget-1ms-20260815.json"
+  },
+  "methodology": {
+    "name_lookup": "Exact NUL-terminated UTF-16LE CVar name.",
+    "xref": "AArch64 ADRP/ADD registration references in the exact shipped binary.",
+    "default_decode": "Each file-backed four-byte value is decoded through its ELF PT_LOAD VMA-to-file mapping.",
+    "scope": "Static policy/default audit and candidate-ranking evidence only; no value is TFT FPS evidence."
+  },
+  "compiled_policy": [
+    {
+      "cvar": "a.Budget.BudgetMs",
+      "storage_vma": "0xba08770",
+      "type": "float",
+      "value": 1.0,
+      "unit": "ms"
+    },
+    {
+      "cvar": "a.Budget.MinQuality",
+      "storage_vma": "0xba08774",
+      "type": "float",
+      "value": 0.0
+    },
+    {
+      "cvar": "a.Budget.MaxTickRate",
+      "storage_vma": "0xba08778",
+      "type": "int",
+      "value": 10
+    },
+    {
+      "cvar": "a.Budget.WorkUnitSmoothingSpeed",
+      "storage_vma": "0xba0877c",
+      "type": "float",
+      "value": 5.0
+    },
+    {
+      "cvar": "a.Budget.AlwaysTickFalloffAggression",
+      "storage_vma": "0xba08780",
+      "type": "float",
+      "value": 0.8
+    },
+    {
+      "cvar": "a.Budget.InterpolationFalloffAggression",
+      "storage_vma": "0xba08784",
+      "type": "float",
+      "value": 0.4
+    },
+    {
+      "cvar": "a.Budget.InterpolationMaxRate",
+      "storage_vma": "0xba08788",
+      "type": "int",
+      "value": 6
+    },
+    {
+      "cvar": "a.Budget.MaxInterpolatedComponents",
+      "storage_vma": "0xba0878c",
+      "type": "int",
+      "value": 16
+    },
+    {
+      "cvar": "a.Budget.InterpolationTickMultiplier",
+      "storage_vma": "0xba08790",
+      "type": "float",
+      "value": 0.75
+    },
+    {
+      "cvar": "a.Budget.InitialEstimatedWorkUnitTime",
+      "storage_vma": "0xba08794",
+      "type": "float",
+      "value": 0.08,
+      "unit": "ms"
+    },
+    {
+      "cvar": "a.Budget.MaxTickedOffsreen",
+      "storage_vma": "0xba08798",
+      "type": "int",
+      "value": 4
+    },
+    {
+      "cvar": "a.Budget.StateChangeThrottleInFrames",
+      "storage_vma": "0xba0879c",
+      "type": "int",
+      "value": 30
+    },
+    {
+      "cvar": "a.Budget.BudgetFactorBeforeReducedWork",
+      "storage_vma": "0xba087a0",
+      "type": "float",
+      "value": 1.5
+    },
+    {
+      "cvar": "a.Budget.BudgetFactorBeforeReducedWorkEpsilon",
+      "storage_vma": "0xba087a4",
+      "type": "float",
+      "value": 0.25
+    },
+    {
+      "cvar": "a.Budget.BudgetPressureSmoothingSpeed",
+      "storage_vma": "0xba087a8",
+      "type": "float",
+      "value": 3.0
+    },
+    {
+      "cvar": "a.Budget.ReducedWorkThrottleMinInFrames",
+      "storage_vma": "0xba087ac",
+      "type": "int",
+      "value": 2
+    },
+    {
+      "cvar": "a.Budget.ReducedWorkThrottleMaxInFrames",
+      "storage_vma": "0xba087b0",
+      "type": "int",
+      "value": 20
+    },
+    {
+      "cvar": "a.Budget.BudgetFactorBeforeAggressiveReducedWork",
+      "storage_vma": "0xba087b4",
+      "type": "float",
+      "value": 2.0
+    },
+    {
+      "cvar": "a.Budget.ReducedWorkThrottleMaxPerFrame",
+      "storage_vma": "0xba087b8",
+      "type": "int",
+      "value": 4
+    },
+    {
+      "cvar": "a.Budget.GBudgetPressureBeforeEmergencyReducedWork",
+      "storage_vma": "0xba087bc",
+      "type": "float",
+      "value": 2.5
+    },
+    {
+      "cvar": "a.Budget.AutoCalculatedSignificanceMaxDistance",
+      "storage_vma": "0xba087c0",
+      "type": "float",
+      "value": 30000.0,
+      "unit": "cm",
+      "embedded_help_default": 300.0,
+      "note": "The compiled value differs from the embedded help default; the exact binary value is authoritative for this audit."
+    }
+  ],
+  "startup_policy": {
+    "allocator_enabled": 1,
+    "compiled_budget_ms": 1.0,
+    "low_view_scalability_budget_ms": 1.5,
+    "later_saved_settings_budget_ms": 1.85,
+    "candidate_budget_ms": 1.0,
+    "candidate_profile_sha256": "5691ec40a9a96b3ee0c238e9db2d70bb3e769ba30fad6f085ee0346adf934fc3",
+    "candidate_isolated_delta_count": 1,
+    "candidate_startup_attested": true,
+    "lower_priority_override_was_blocked": true
+  },
+  "decisions": {
+    "candidate_ranking": "retain_budget_1ms_as_priority_3",
+    "why": "BudgetMs is the single direct time-allocation control and the candidate restores the compiled 1.0 ms policy after the saved-settings 1.85 ms override.",
+    "other_policy_knobs": "do_not_queue: tightening interpolation, tick-rate, offscreen, quality, or significance controls changes unit cadence/visibility semantics and confounds the time-budget test",
+    "promotion": "none",
+    "required_next": "Matched late-PvP FPS/p95/p99 plus attack, spell, and important-unit animation-cadence correctness."
+  }
+}

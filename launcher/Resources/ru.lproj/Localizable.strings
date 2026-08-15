@@ -31,6 +31,8 @@
 "effects_quality.high.detail" = "Полная детализация";
 "effects_quality.performance" = "Производительность";
 "effects_quality.performance.detail" = "Меньше эффектов и более простой LOD";
+"effects_quality.maximum" = "Максимум FPS";
+"effects_quality.maximum.detail" = "67% масштаба 3D, меньше эффектов и более простой LOD";
 
 "action.play" = "Играть";
 "action.update_game" = "Обновить игру";

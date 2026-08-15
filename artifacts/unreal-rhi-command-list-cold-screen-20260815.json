@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "client": {
+    "package": "com.riotgames.league.teamfighttactics.pbe",
+    "riot_build": "18.1.0.5300314",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile_sha256": "7a82dd3a105beea7a50e96b91677b07c9b6bf9e5d207ed0ed20a9976965aac74"
+  },
+  "static_support": {
+    "method": "AArch64 ADRP/ADD UTF-16LE-name xrefs and constructor-local default stores in the exact live binary",
+    "observations": [
+      {
+        "cvar": "r.RHICmdBypass",
+        "registration_xref": "0x501815c",
+        "compiled_value_u32": 0,
+        "evidence": "str wzr,[sp] at 0x5018178"
+      },
+      {
+        "cvar": "r.OpenGL.AllowRHIThread",
+        "registration_xref": "0x4abfa14",
+        "compiled_value_u32": 1,
+        "evidence": "mov w23,#1 at 0x4abf6a0; str w23,[sp,#8] at 0x4abfa30"
+      },
+      {
+        "cvar": "r.RHICmd.ParallelTranslate.Enable",
+        "registration_xref": "0x50181d8",
+        "compiled_value_u32": 1,
+        "evidence": "mov w25,#1 at 0x5017f38; strb w25,[sp] at 0x50181f4"
+      },
+      {
+        "cvar": "r.RHICmd.ParallelTranslate.MaxCommandsPerTranslate",
+        "registration_xref": "0x5018218",
+        "compiled_value_u32": 256
+      },
+      {
+        "cvar": "r.MeshDrawCommands.UseCachedCommands",
+        "registration_xref": "0x5daa968",
+        "compiled_value_u32": 1
+      },
+      {
+        "cvar": "r.RHICmdMinDrawsPerParallelCmdList",
+        "registration_xref": "0x5daaebc",
+        "compiled_value_u32": 64
+      }
+    ],
+    "interpretation": "Performance Max forces RHICmdBypass from the compiled zero to one even though the shipped OpenGL and command-list parallel facilities are enabled. Restoring zero is a supported, non-noop heavy-draw hypothesis."
+  },
+  "methodology": {
+    "screen": "expired-login screen after separate cold AVD boots",
+    "memory": "three post-ready Android dumpsys meminfo snapshots per variant at the same screen and timing range",
+    "crash_gate": "empty Android crash buffer and unchanged 12-file tombstone inventory",
+    "scope": "startup, memory, crash, and configuration isolation only; no heavy draw workload or TFT FPS is measured"
+  },
+  "runs": [
+    {
+      "variant": "candidate_rhi_command_list",
+      "rhi_cmd_bypass": 0,
+      "profile_sha256": "7a82dd3a105beea7a50e96b91677b07c9b6bf9e5d207ed0ed20a9976965aac74",
+      "boot_ms": 18191,
+      "process_pid": 2800,
+      "memory_samples_kib": [
+        {"pss": 863771, "rss": 1019396, "swap": 0},
+        {"pss": 863667, "rss": 1019288, "swap": 0},
+        {"pss": 863711, "rss": 1019332, "swap": 0}
+      ],
+      "mean_memory_kib": {"pss": 863716.333333, "rss": 1019338.666667, "swap": 0},
+      "startup_log_sha256": "1a1c43d4f70b8c7df95c35fc4f74b9506db9d43220e736028737208a9672660d",
+      "startup_transition": "0 -> 0",
+      "crash_buffer_empty": true,
+      "tombstone_file_count": 12,
+      "fresh_tombstone": false
+    },
+    {
+      "variant": "control_performance_max",
+      "rhi_cmd_bypass": 1,
+      "profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+      "boot_ms": 18186,
+      "process_pid": 2713,
+      "memory_samples_kib": [
+        {"pss": 866565, "rss": 1021568, "swap": 0},
+        {"pss": 865500, "rss": 1020812, "swap": 0},
+        {"pss": 865768, "rss": 1021080, "swap": 0}
+      ],
+      "mean_memory_kib": {"pss": 865944.333333, "rss": 1021153.333333, "swap": 0},
+      "startup_log_sha256": "ae3e7132e9a30db4eaea119597c0c1b8624c4711976bf1cd7e3d4010f004e32e",
+      "startup_transition": "0 -> 1",
+      "crash_buffer_empty": true,
+      "tombstone_file_count": 12,
+      "fresh_tombstone": false
+    }
+  ],
+  "comparison": {
+    "candidate_vs_control_mean_pss_percent": -0.257293,
+    "candidate_vs_control_mean_rss_percent": -0.177705,
+    "candidate_vs_control_boot_percent": 0.027494,
+    "cold_gate": "pass: startup, memory, and crash behavior are directionally neutral"
+  },
+  "decision": {
+    "status": "queued_unpromoted",
+    "promotion": "none",
+    "required_next": "matched late-PvP control/candidate blocks with RHIThread, RenderThread, task, FPS, p95, and p99 evidence",
+    "reason": "The login screen cannot reveal whether command-list construction and parallel translation beat bypass overhead in effect-heavy player combat."
+  }
+}

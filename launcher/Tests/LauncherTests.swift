@@ -98,7 +98,10 @@ enum LauncherTests {
         try expect(
             EffectsQuality.selection(saved: nil) == .high
                 && EffectsQuality.selection(saved: "unknown") == .high
-                && EffectsQuality.selection(saved: "performance") == .performance,
+                && EffectsQuality.selection(saved: "performance") == .performance
+                && EffectsQuality.selection(saved: "maximum") == .maximum
+                && EffectsQuality.maximum.profileFilename
+                    == "Android_Codex.DeviceProfiles.performance-max.ini",
             "effects quality selection"
         )
         try expect(manifest.profiles[0].displaySize == "1920x1080", "balanced resolution")
@@ -1102,7 +1105,8 @@ enum LauncherTests {
                 && buildScript.contains("Mactician-$VERSION.dmg")
                 && buildScript.contains("-volname \"Mactician\"")
                 && buildScript.contains("Android_Codex.DeviceProfiles.effects-high.ini")
-                && buildScript.contains("Android_Codex.DeviceProfiles.effects-performance.ini"),
+                && buildScript.contains("Android_Codex.DeviceProfiles.effects-performance.ini")
+                && buildScript.contains("Android_Codex.DeviceProfiles.performance-max.ini"),
             "release artifact naming"
         )
         let profileRoot = sourceRoot.deletingLastPathComponent()
@@ -1116,6 +1120,12 @@ enum LauncherTests {
         let performanceEffectsProfile = try String(
             contentsOf: profileRoot.appendingPathComponent(
                 "Android_Codex.DeviceProfiles.effects-performance.ini"
+            ),
+            encoding: .utf8
+        )
+        let maximumFPSProfile = try String(
+            contentsOf: profileRoot.appendingPathComponent(
+                "Android_Codex.DeviceProfiles.performance-max.ini"
             ),
             encoding: .utf8
         )
@@ -1134,6 +1144,12 @@ enum LauncherTests {
             performanceEffectsProfile.contains("CVars=sg.EffectsQuality=0")
                 && performanceEffectsProfile.contains("CVars=r.ParticleLODBias=2"),
             "performance effects profile reduces effects and LOD"
+        )
+        try expect(
+            maximumFPSProfile.contains("CVars=sg.ResolutionQuality=67")
+                && maximumFPSProfile.contains("CVars=r.ScreenPercentage=67")
+                && maximumFPSProfile.contains("CVars=Android.OpenGL.NumRemoteProgramCompileServices=4"),
+            "maximum FPS profile combines lower 3D scale with asynchronous PSO compilation"
         )
         let keychainScript = try String(
             contentsOf: sourceRoot.deletingLastPathComponent()

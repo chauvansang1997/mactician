@@ -1,5 +1,78 @@
 {
   "schemaVersion": 1,
+  "latePvpPriorityQueue": {
+    "controlCandidateId": "performance-max",
+    "controlProfileSha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "minimumIndependentSessionsPerVariant": 2,
+    "items": [
+      {
+        "priority": 1,
+        "candidateId": "performance-max-ubo-pool-16m-screen",
+        "profileSha256": "1799397dd17f53462b306f3c9d564b05da645c228f0b660f5a0903c5932e9540",
+        "target": "RHI uniform-buffer update and guest-host transport cost",
+        "why": "map-once pooled updates won all eight synthetic brackets across 256/512/1024-draw ASG screens and a 512-draw pipe cross-check; the heavy proxy attributes 31.49% CPU samples to the broad RHIThread/transport path, but flat reports do not directly attribute that share to UBO and the 16 MiB capacity remains unsized",
+        "capacityGate": {
+          "candidateBytes": 16777216,
+          "largestMeasuredSyntheticWorkingSetBytes": 32768,
+          "candidateToLargestMeasuredRatio": 512,
+          "status": "require_late_pvp_efficacy_before_4m_8m_16m_sizing_ladder"
+        },
+        "correctnessGates": ["unit and item rendering", "spell-effect rendering"]
+      },
+      {
+        "priority": 2,
+        "candidateId": "performance-max-rhi-command-list-screen",
+        "profileSha256": "7a82dd3a105beea7a50e96b91677b07c9b6bf9e5d207ed0ed20a9976965aac74",
+        "target": "RHIThread command construction and translation",
+        "why": "restores the shipped command-list path and directly targets the largest named heavy-proxy CPU consumer",
+        "correctnessGates": ["no render corruption", "no new frame-tail spikes"]
+      },
+    {
+      "priority": 3,
+      "candidateId": "performance-max-animation-budget-1ms-screen",
+      "profileSha256": "5691ec40a9a96b3ee0c238e9db2d70bb3e769ba30fad6f085ee0346adf934fc3",
+      "target": "dense skeletal-mesh animation work on the game thread",
+      "why": "Riot already enables the significance-aware allocator, and the isolated candidate restores its documented 1.0 ms low-quality example instead of the later saved-settings 1.85 ms budget",
+      "correctnessGates": [
+        "important unit animation cadence",
+        "attack and spell timing legibility",
+        "no new frame-tail spikes"
+      ]
+    },
+    {
+      "priority": 4,
+      "candidateId": "performance-max-gpu-scene-parallel-512-screen",
+        "profileSha256": "2083f6bc5bbe53131eb192641194d35f71ef4feb9e890f725bf52ec1529b2b9d",
+        "target": "dense primitive and instance update scheduling",
+        "why": "lowers a supported parallel threshold and was neutral in a consecutive cold pair",
+        "correctnessGates": ["unit transforms", "bench and board movement"]
+      },
+    {
+      "priority": 5,
+        "candidateId": "performance-max-parallel-dynamic-mesh-screen",
+        "profileSha256": "10dfd8967f4b13d90ab93a4ce37500be153671f396469b4748538bdaeab186b2",
+        "target": "dynamic mesh gathering during effect-heavy visibility",
+        "why": "reverses the Android config disable of a supported parallel path and passed cold overhead gates",
+        "correctnessGates": ["unit meshes", "dynamic combat effects"]
+      },
+    {
+      "priority": 6,
+        "candidateId": "performance-max-fx-early-schedule-screen",
+        "profileSha256": "f26f101beeb4ec2a2f6aee41213a7821eb643704d9c35d578898e54892fc41d3",
+        "target": "particle-system task placement within the frame",
+        "why": "isolated supported non-noop scheduling change with neutral cold behavior",
+        "correctnessGates": ["spell timing", "spell-cue legibility"]
+      },
+    {
+      "priority": 7,
+        "candidateId": "performance-max-niagara-batch-size-8-screen",
+        "profileSha256": "cf77b183bb4e62e69cad3437e1fcc08b46a1833f34dfcecf00f13f8e8e819859",
+        "target": "Niagara system-simulation task overhead",
+        "why": "halves task count above the batch threshold and passed startup, live-storage, memory, and crash gates",
+        "correctnessGates": ["spell timing", "particle completeness"]
+      }
+    ]
+  },
   "candidates": [
     {
       "id": "control",
@@ -283,6 +356,260 @@
       "display": "2560x1440",
       "density": 416,
       "stages": ["1-5", "1-8"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-angle-cpu-buffer-copy-screen",
+      "launcher": "run-tft-performance-max.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+      "variant": "performance_max_angle_cpu_buffer_copy_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ANGLE_EXTRA_FEATURES": "preferCPUForBufferSubData",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-angle-aggregate-barriers-screen",
+      "launcher": "run-tft-performance-max.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+      "variant": "performance_max_angle_aggregate_barriers_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ANGLE_EXTRA_FEATURES": "preferAggregateBarrierCalls",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-angle-no-image-events-screen",
+      "launcher": "run-tft-performance-max.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+      "variant": "performance_max_angle_no_image_events_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary:useVkEventForImageBarrier",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-angle-no-buffer-events-screen",
+      "launcher": "run-tft-performance-max.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+      "variant": "performance_max_angle_no_buffer_events_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary:useVkEventForBufferBarrier",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-ubo-direct-write-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-ubo-direct-write.ini",
+      "variant": "performance_max_ubo_direct_write_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-ubo-pool-16m-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-ubo-pool-16m.ini",
+      "variant": "performance_max_ubo_pool_16m_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-emitter-0125-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-emitter-0125.ini",
+      "variant": "performance_max_emitter_0125_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-parallel-dynamic-mesh-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-parallel-dynamic-mesh.ini",
+      "variant": "performance_max_parallel_dynamic_mesh_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-gpu-scene-parallel-512-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-gpu-scene-parallel-512.ini",
+      "variant": "performance_max_gpu_scene_parallel_512_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-rhi-command-list-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-rhi-command-list.ini",
+      "variant": "performance_max_rhi_command_list_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-fx-budget-2ms-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-fx-budget-2ms.ini",
+      "variant": "performance_max_fx_budget_2ms_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-fx-early-schedule-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-fx-early-schedule.ini",
+      "variant": "performance_max_fx_early_schedule_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-scalability-pins-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-scalability-pins.ini",
+      "variant": "performance_max_scalability_pins_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-animation-budget-1ms-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-animation-budget-1ms.ini",
+      "variant": "performance_max_animation_budget_1ms_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-actor-pool-warming-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-actor-pool-warming.ini",
+      "variant": "performance_max_actor_pool_warming_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-niagara-all-batches-async-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-niagara-all-batches-async.ini",
+      "variant": "performance_max_niagara_all_batches_async_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-niagara-batch-size-8-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-niagara-batch-size-8.ini",
+      "variant": "performance_max_niagara_batch_size_8_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
+      "env": {
+        "TFT_GUEST_SUBMIT_THREAD": "on-demand",
+        "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",
+        "TFT_ASG_WRITE_STEP_SIZE": "16384"
+      }
+    },
+    {
+      "id": "performance-max-drag-tickless-screen",
+      "launcher": "run-tft-fast-quality.command",
+      "profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-drag-tickless.ini",
+      "variant": "performance_max_drag_tickless_screen",
+      "display": "2560x1440",
+      "density": 416,
+      "stages": ["1-5"],
       "env": {
         "TFT_GUEST_SUBMIT_THREAD": "on-demand",
         "TFT_ANGLE_DISABLED_FEATURES": "preferSubmitAtFBOBoundary",

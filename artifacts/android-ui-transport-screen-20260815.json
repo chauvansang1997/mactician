@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-15",
+  "host": "Apple M1 Max",
+  "purpose": "Authentication-independent screening of guest ANGLE transport candidates; not a TFT battle benchmark.",
+  "workload": {
+    "foreground_package": "com.android.settings",
+    "display": "2560x1440",
+    "density": 416,
+    "renderer": "skiagl",
+    "transport": "virtio-gpu-asg",
+    "swipe_pairs_per_round": 15,
+    "warmup_rounds_discarded": 3,
+    "attestation": {
+      "settings_guest_angle_mapped": "yes",
+      "graphics_profile": "osft",
+      "rollback_verified_for_every_run": true
+    }
+  },
+  "runs": [
+    {"utc": "20260814T223231Z", "candidate": "performance-max-heavy-confirm", "rounds": 12, "warm_mean_elapsed_ms": 6633.261888888889, "warm_median_elapsed_ms": 6626.732, "warm_max_p95_ms": 21, "warm_max_p99_ms": 24, "warm_janky_frames": 4},
+    {"utc": "20260814T223449Z", "candidate": "performance-max-angle-cpu-buffer-copy-screen", "rounds": 12, "warm_mean_elapsed_ms": 6604.200777777778, "warm_median_elapsed_ms": 6591.679, "warm_max_p95_ms": 10, "warm_max_p99_ms": 15, "warm_janky_frames": 2},
+    {"utc": "20260814T223655Z", "candidate": "performance-max-angle-aggregate-barriers-screen", "rounds": 12, "warm_mean_elapsed_ms": 6637.819333333333, "warm_median_elapsed_ms": 6613.801, "warm_max_p95_ms": 22, "warm_max_p99_ms": 24, "warm_janky_frames": 3},
+    {"utc": "20260814T223906Z", "candidate": "performance-max-heavy-confirm", "rounds": 12, "warm_mean_elapsed_ms": 6635.677111111111, "warm_median_elapsed_ms": 6615.507, "warm_max_p95_ms": 22, "warm_max_p99_ms": 24, "warm_janky_frames": 3},
+    {"utc": "20260814T224118Z", "candidate": "performance-max-angle-no-image-events-screen", "rounds": 12, "warm_mean_elapsed_ms": 6624.796444444444, "warm_median_elapsed_ms": 6638.607, "warm_max_p95_ms": 22, "warm_max_p99_ms": 26, "warm_janky_frames": 4},
+    {"utc": "20260814T224323Z", "candidate": "performance-max-angle-no-buffer-events-screen", "rounds": 12, "warm_mean_elapsed_ms": 6609.94511111111, "warm_median_elapsed_ms": 6600.212, "warm_max_p95_ms": 10, "warm_max_p99_ms": 18, "warm_janky_frames": 2},
+    {"utc": "20260814T224539Z", "candidate": "performance-max-heavy-confirm", "rounds": 12, "warm_mean_elapsed_ms": 6583.387, "warm_median_elapsed_ms": 6586.545, "warm_max_p95_ms": 10, "warm_max_p99_ms": 14, "warm_janky_frames": 2},
+    {"utc": "20260814T224750Z", "candidate": "performance-max-angle-cpu-buffer-copy-screen", "rounds": 12, "warm_mean_elapsed_ms": 6635.087777777778, "warm_median_elapsed_ms": 6644.952, "warm_max_p95_ms": 22, "warm_max_p99_ms": 25, "warm_janky_frames": 1},
+    {"utc": "20260814T225005Z", "candidate": "performance-max-angle-no-buffer-events-screen", "rounds": 12, "warm_mean_elapsed_ms": 6635.160777777778, "warm_median_elapsed_ms": 6627.993, "warm_max_p95_ms": 10, "warm_max_p99_ms": 14, "warm_janky_frames": 3},
+    {"utc": "20260814T225346Z", "candidate": "performance-max-heavy-confirm", "rounds": 12, "warm_mean_elapsed_ms": 6599.137888888889, "warm_median_elapsed_ms": 6600.755, "warm_max_p95_ms": 20, "warm_max_p99_ms": 24, "warm_janky_frames": 2}
+  ],
+  "aggregates": {
+    "control": {"runs": 4, "warm_mean_elapsed_ms": 6612.865972222223, "minimum_run_mean_ms": 6583.387, "maximum_run_mean_ms": 6635.677111111111, "run_mean_range_ms": 52.2901111111114},
+    "prefer_cpu_for_buffer_sub_data": {"runs": 2, "warm_mean_elapsed_ms": 6619.6442777777775, "elapsed_delta_vs_control_percent": 0.1025},
+    "disable_buffer_barrier_events": {"runs": 2, "warm_mean_elapsed_ms": 6622.552944444444, "elapsed_delta_vs_control_percent": 0.1465}
+  },
+  "paired_host_polling_check": {
+    "simulated_load": "one SurfaceFlinger latency query and one activity query per second",
+    "with_polling": {"utc": "20260814T225657Z", "rounds": 20, "warm_mean_elapsed_ms": 6629.880352941176, "warm_median_elapsed_ms": 6616.444, "warm_max_p95_ms": 22, "warm_max_p99_ms": 25, "warm_janky_frames": 8},
+    "without_polling": {"utc": "20260814T230009Z", "rounds": 20, "warm_mean_elapsed_ms": 6644.678647058824, "warm_median_elapsed_ms": 6611.65, "warm_max_p95_ms": 22, "warm_max_p99_ms": 29, "warm_janky_frames": 5},
+    "elapsed_delta_percent": -0.2227,
+    "decision": "neutral; retain FPS HUD and activity monitor"
+  },
+  "vcpu_check": {
+    "six_vcpu": {"utc": "20260814T230339Z", "rounds": 20, "warm_mean_elapsed_ms": 6603.639529411765, "warm_median_elapsed_ms": 6596.297, "warm_max_p95_ms": 22, "warm_max_p99_ms": 36, "warm_janky_frames": 7},
+    "seven_vcpu_control": {"utc": "20260814T230009Z", "rounds": 20, "warm_mean_elapsed_ms": 6644.678647058824, "warm_median_elapsed_ms": 6611.65, "warm_max_p95_ms": 22, "warm_max_p99_ms": 29, "warm_janky_frames": 5},
+    "elapsed_delta_percent": -0.6176,
+    "decision": "mixed and below threshold; retain the app's six-vCPU selection"
+  },
+  "decision": {
+    "promotion_threshold_percent": 3,
+    "promoted_candidates": [],
+    "classification": "neutral_or_inconclusive",
+    "reason": "Candidate means overlap the 52.29 ms control run-to-run range, repeated apparent gains disappeared, and the workload is Android UI rather than a late TFT player battle.",
+    "next_gate": "same-stage late-PvP pacing plus post-window symbol-only guest profile"
+  }
+}

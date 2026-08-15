@@ -4,7 +4,10 @@ The current application metadata is version 1.0.4, build 40.
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Add a reversible **Maximum FPS** graphics-detail preset that selects the
+  audited 67% 3D-scale Performance Max profile from the app.
 
 ## 1.0.4 — 2026-08-14
 

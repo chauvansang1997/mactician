@@ -22,6 +22,10 @@ private let referenceCombatCyanRunThreshold = 80
 private let referenceShopCardCenters = [1055, 1275, 1490, 1710]
 
 private enum ScreenState: String {
+    case patchAvailable = "patch_available"
+    case patchReady = "patch_ready"
+    case patching
+    case cosmeticNotice = "cosmetic_notice"
     case lobby
     case modeSelect = "mode_select"
     case trialsLobby = "trials_lobby"
@@ -144,7 +148,7 @@ private func loadImage(at url: URL) throws -> CGImage {
 private func recognizeText(in image: CGImage) throws -> [OCRLine] {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
-    request.recognitionLanguages = ["en-US"]
+    request.recognitionLanguages = ["en-US", "ru-RU"]
     request.usesLanguageCorrection = true
     request.minimumTextHeight = 0.008
     request.customWords = [
@@ -159,6 +163,14 @@ private func recognizeText(in image: CGImage) throws -> [OCRLine] {
         "Choose One",
         "Time Bonus",
         "Description",
+        "Доступно обновление",
+        "Скачать",
+        "Загрузка",
+        "Установка",
+        "Играть",
+        "Пропуск",
+        "Царства сокровищ",
+        "Сборки",
     ]
 
     do {
@@ -440,6 +452,36 @@ private func classifierSelfTest() -> Bool {
         confidence: 1,
         boundingBox: CGRect(x: 0.8, y: 0.1, width: 0.1, height: 0.04)
     )
+    let russianStage = OCRLine(
+        text: "4-6",
+        normalized: "4-6",
+        compact: "46",
+        confidence: 1,
+        boundingBox: CGRect(x: 0.48, y: 0.91, width: 0.04, height: 0.03)
+    )
+    let russianBattleHUD = OCRLine(
+        text: "КУПИТЬ ОПЫТ",
+        normalized: "КУПИТЬ ОПЫТ",
+        compact: "КУПИТЬОПЫТ",
+        confidence: 1,
+        boundingBox: CGRect(x: 0.02, y: 0.03, width: 0.12, height: 0.03)
+    )
+    let russianPlanning = OCRLine(
+        text: "ОБНОВИТЬ",
+        normalized: "ОБНОВИТЬ",
+        compact: "ОБНОВИТЬ",
+        confidence: 1,
+        boundingBox: CGRect(x: 0.8, y: 0.1, width: 0.1, height: 0.04)
+    )
+    let russianBattle = classify(lines: [russianStage, russianBattleHUD, russianPlanning])
+    let russianBattlePhase = battlePhase(
+        for: russianBattle,
+        lines: [russianStage, russianBattleHUD, russianPlanning],
+        combatCyanPixels: 0,
+        combatCyanLongestRun: 0,
+        imageWidth: referenceWidth,
+        imageHeight: referenceHeight
+    )
     let postCombatPhase = battlePhase(
         for: battle,
         lines: [timeBonus],
@@ -465,6 +507,9 @@ private func classifierSelfTest() -> Bool {
         && boardOccupancy(in: [noisyOccupancy])?.capacity == 4
         && postCombatPhase == "post_combat"
         && planningPhase == "planning"
+        && russianBattle.state == .battle
+        && russianBattle.stage == "4-6"
+        && russianBattlePhase == "planning"
 }
 
 private func emitDebugLines(_ lines: [OCRLine]) {
@@ -570,6 +615,57 @@ private func classify(lines: [OCRLine]) -> Classification {
     // Fail closed: a reject marker always wins over content visible behind a dialog.
     // Trial settings and its surrender confirmation are overlays: the stage and
     // battle HUD remain OCR-visible behind them, so they must win over battle.
+    let englishPatchPrompt = matcher.has("NEW PATCH AVAILABLE")
+        && matcher.has("WOULD YOU LIKE TO DOWNLOAD")
+    let russianPatchPrompt = matcher.has("ДОСТУПНО ОБНОВЛЕНИЕ")
+        && matcher.has("СКАЧАТЬ")
+    if englishPatchPrompt || russianPatchPrompt {
+        return Classification(
+            state: .patchAvailable,
+            stage: nil,
+            reason: "patch_download_confirmation",
+            evidence: matcher.matchedText(for: [
+                "NEW PATCH AVAILABLE", "WOULD YOU LIKE TO DOWNLOAD",
+                "ДОСТУПНО ОБНОВЛЕНИЕ", "СКАЧАТЬ",
+            ])
+        )
+    }
+
+    if matcher.has("START PATCHING") && matcher.has("TEAMFIGHT") {
+        return Classification(
+            state: .patchReady,
+            stage: nil,
+            reason: "patch_ready",
+            evidence: matcher.matchedText(for: ["START PATCHING", "TEAMFIGHT"])
+        )
+    }
+
+    if matcher.hasAny([
+        "PATCHING", "INSTALLING PATCH", "APPLYING PATCH",
+        "ЗАГРУЗКА", "УСТАНОВКА", "ПРИМЕНЕНИЕ ОБНОВЛЕНИЯ",
+    ])
+            && matcher.has("TEAMFIGHT") {
+        return Classification(
+            state: .patching,
+            stage: nil,
+            reason: "patch_in_progress",
+            evidence: matcher.matchedText(for: [
+                "PATCHING", "INSTALLING PATCH", "APPLYING PATCH",
+                "ЗАГРУЗКА", "УСТАНОВКА", "ПРИМЕНЕНИЕ ОБНОВЛЕНИЯ", "TEAMFIGHT",
+            ])
+        )
+    }
+
+    if matcher.has("UNAVAILABLE COSMETIC")
+            && matcher.has("REPLACED WITH DEFAULT COSMETICS") {
+        return Classification(
+            state: .cosmeticNotice,
+            stage: nil,
+            reason: "default_cosmetics_notice",
+            evidence: matcher.matchedText(for: ["UNAVAILABLE COSMETIC", "REPLACED WITH DEFAULT COSMETICS"])
+        )
+    }
+
     if matcher.has("SETTINGS") && matcher.has("SURRENDER GAME")
             && matcher.has("DO YOU WANT TO SURRENDER THIS GAME") {
         return Classification(
@@ -696,7 +792,10 @@ private func classify(lines: [OCRLine]) -> Classification {
         )
     }
 
-    let loginMarkers = ["LOG IN", "SIGN IN", "LOGIN", "RIOT ACCOUNT"]
+    let loginMarkers = [
+        "LOG IN", "SIGN IN", "LOGIN", "RIOT ACCOUNT",
+        "ВОЙТИ", "ВХОД", "УЧЕТНАЯ ЗАПИСЬ RIOT", "УЧЁТНАЯ ЗАПИСЬ RIOT",
+    ]
     if matcher.hasAny(loginMarkers) || (matcher.has("USERNAME") && matcher.has("PASSWORD")) {
         return Classification(
             state: .login,
@@ -742,7 +841,11 @@ private func classify(lines: [OCRLine]) -> Classification {
         )
     }
 
-    let battleHUDMarkers = ["SCORE", "DAMAGE DEALT", "SURVIVING DAMAGE", "BUY XP"]
+    let battleHUDMarkers = [
+        "SCORE", "DAMAGE DEALT", "SURVIVING DAMAGE", "BUY XP",
+        "СЧЕТ", "СЧЁТ", "НАНЕСЕННЫЙ УРОН", "НАНЕСЁННЫЙ УРОН",
+        "НАНЕСЕНО УРОНА", "УРОН ВЫЖИВШИХ", "КУПИТЬ ОПЫТ",
+    ]
     if let stage = stageMarker(in: lines), matcher.hasAny(battleHUDMarkers) {
         return Classification(
             state: .battle,
@@ -772,14 +875,17 @@ private func classify(lines: [OCRLine]) -> Classification {
         )
     }
 
-    let lobbyMarkers = ["PASS", "TREASURE REALMS", "LOADOUTS", "PATCH NOTES"]
+    let lobbyMarkers = [
+        "PASS", "TREASURE REALMS", "LOADOUTS", "PATCH NOTES",
+        "ПРОПУСК", "ЦАРСТВА СОКРОВИЩ", "СБОРКИ", "ОПИСАНИЕ ОБНОВЛЕНИЯ",
+    ]
     let lobbyMarkerCount = lobbyMarkers.filter(matcher.has).count
-    if matcher.has("PLAY") && lobbyMarkerCount >= 2 {
+    if matcher.hasAny(["PLAY", "ИГРАТЬ"]) && lobbyMarkerCount >= 2 {
         return Classification(
             state: .lobby,
             stage: nil,
             reason: "home_navigation",
-            evidence: matcher.matchedText(for: lobbyMarkers + ["PLAY"])
+            evidence: matcher.matchedText(for: lobbyMarkers + ["PLAY", "ИГРАТЬ"])
         )
     }
 
@@ -800,7 +906,7 @@ private func battlePhase(
     if classification.state == .trialChoice {
         return "planning"
     }
-    if lines.contains(where: { $0.compact == "COMBAT" }) {
+    if lines.contains(where: { $0.compact == "COMBAT" || $0.compact == "БОЙ" }) {
         return "combat"
     }
     // The Combat banner is brief. The cyan progress bar remains visible for
@@ -824,6 +930,8 @@ private func battlePhase(
     if lines.contains(where: {
         $0.compact == "PLANNING" || $0.compact == "PREPARE"
             || $0.compact == "FIGHT" || $0.compact == "REROLL"
+            || $0.compact == "ПЛАНИРОВАНИЕ" || $0.compact == "ПОДГОТОВКА"
+            || $0.compact == "ОБНОВИТЬ"
     }) {
         return "planning"
     }

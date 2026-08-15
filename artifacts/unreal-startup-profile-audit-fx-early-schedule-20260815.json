@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source": {
+    "base_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-fx-early-schedule.ini",
+    "candidate_profile_sha256": "f26f101beeb4ec2a2f6aee41213a7821eb643704d9c35d578898e54892fc41d3",
+    "startup_log_sha256": "94828fb11c9f5590a5b456f1e7b00301764d32b9c2843e66d5a9b4bdafd5c5da",
+    "startup_log_embedded": false
+  },
+  "methodology": {
+    "attestation": "exact candidate-only CVar deltas observed in DeviceProfile push records",
+    "protected_override": "lower-priority write was logged as ignored and retained the candidate value",
+    "scope": "startup application and priority only; this is not a runtime FPS result"
+  },
+  "result": {
+    "delta_count": 1,
+    "startup_attested_count": 1,
+    "protected_override_count": 0,
+    "all_deltas_startup_attested": true
+  },
+  "deltas": [
+    {
+      "key": "FX.EarlyScheduleAsync",
+      "base_value": null,
+      "candidate_value": "1",
+      "device_profile_push_records": 1,
+      "protected_override_records": 0,
+      "startup_attested": true
+    }
+  ]
+}

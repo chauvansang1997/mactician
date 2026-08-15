@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "candidate": "tft.ActorPoolWarmingEnabled=1",
+  "environment": {
+    "client": "TFT PBE 18.1.0-5300314",
+    "display": "2560x1440@416",
+    "renderer": "Unreal OpenGL ES -> guest ANGLE -> Vulkan -> gfxstream -> MoltenVK -> Metal",
+    "asg_write_step_bytes": 16384,
+    "angle_disabled_features": ["preferSubmitAtFBOBoundary"],
+    "screen": "expired-session login screen"
+  },
+  "methodology": {
+    "order": ["candidate", "control"],
+    "cold_boots_per_variant": 1,
+    "samples_per_boot": 3,
+    "sample_interval_seconds": 15,
+    "rss_source": "/proc/<pid>/status VmRSS",
+    "peak_rss_source": "/proc/<pid>/status VmHWM",
+    "pss_source": "dumpsys meminfo TOTAL PSS",
+    "limitation": "Exact offsets from launcher-ready were not persisted; this is a directional startup/memory rejection gate, not a performance result."
+  },
+  "runs": [
+    {
+      "variant": "performance_max_actor_pool_warming",
+      "profile_sha256": "740bf39d38004679fd1613c89b0398b73bf8a22712654a416aeefc48a1907026",
+      "emulator_boot_ms": 17268,
+      "rss_kib": [969140, 969816, 969016],
+      "pss_kib": [814586, 815313, 814559],
+      "peak_rss_kib": 1879364,
+      "mean_rss_kib": 969324,
+      "mean_pss_kib": 814819.3333333334,
+      "startup_cvar_attested": true
+    },
+    {
+      "variant": "performance_max_control",
+      "profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+      "emulator_boot_ms": 17628,
+      "rss_kib": [969124, 969324, 969696],
+      "pss_kib": [815025, 814906, 815151],
+      "peak_rss_kib": 1894436,
+      "mean_rss_kib": 969381.3333333334,
+      "mean_pss_kib": 815027.3333333334
+    }
+  ],
+  "comparison_candidate_vs_control": {
+    "mean_rss_delta_percent": -0.005914772878805367,
+    "mean_pss_delta_percent": -0.025520616895619106,
+    "peak_rss_delta_percent": -0.7955832760786812,
+    "emulator_boot_delta_percent": -2.042205582028591
+  },
+  "decision": {
+    "startup_compatible": true,
+    "login_screen_memory_gate": "pass_neutral",
+    "fps_gain_claimed": false,
+    "promoted": false,
+    "next_gate": "matched late-PvP p95/p99 and visual A/B with authenticated sessions"
+  },
+  "evidence": {
+    "startup_profile_audit": "artifacts/unreal-startup-profile-audit-actor-pool-warming-20260815.json",
+    "raw_startup_log_embedded": false
+  }
+}

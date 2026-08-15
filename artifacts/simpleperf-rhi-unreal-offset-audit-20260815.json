@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "kind": "simpleperf_rhi_unreal_offset_audit",
+  "generated_utc": "2026-08-15T06:05:00Z",
+  "purpose": "Test whether the existing flat simpleperf reports directly attribute RHIThread leaf samples to the exact-binary OpenGL buffer/UBO implementation corridor.",
+  "source": {
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "profile_scene": "Tocker's Trials stage 1-8 combat",
+    "late_pvp": false,
+    "event": "cpu-clock",
+    "duration_seconds": 2,
+    "report_sort": "comm,pid,tid,symbol",
+    "reports": [
+      {
+        "id": "performance-max-16k-on-demand",
+        "path": "runtime/measurements/autonomous-trial/20260811T002030Z__profile-performance-max-heavy__60232/profile-1-8/simpleperf-report.txt",
+        "sha256": "571900eec054612852631ebaa9a8064e38d1afbc54fd44f446ee8f3207932864"
+      },
+      {
+        "id": "performance-max-16k-inline",
+        "path": "runtime/measurements/autonomous-trial/20260811T003537Z__profile-performance-max-submit-inline__67011/profile-1-8/simpleperf-report.txt",
+        "sha256": "840394b8b4d729fdd90b7691c2015af6cdef8f70bd50afc1e3a22f5514f2808c"
+      },
+      {
+        "id": "performance-max-32k-on-demand",
+        "path": "runtime/measurements/autonomous-trial/20260811T004317Z__profile-performance-max-asg-step-32768__70158/profile-1-8/simpleperf-report.txt",
+        "sha256": "0ddaa81a728eb82a7fdddc85c5947254575ac03fb847e827acf868d6b316433b"
+      }
+    ]
+  },
+  "methodology": {
+    "row_filter": "exclusive report rows whose Command is RHIThread and whose Symbol is libUnreal.so[+hex-offset]",
+    "audited_ranges": {
+      "broad_opengl_neighborhood": ["0x6f00000", "0x701fffff"],
+      "observed_rhi_executor_neighborhood": ["0x6f80000", "0x6faffff"],
+      "buffer_ubo_corridor": ["0x6ff4e68", "0x700fcf8"]
+    },
+    "buffer_ubo_anchors": [
+      {"xref": "0x6ff545c", "operation": "glBufferData"},
+      {"xref": "0x6ff5490", "operation": "glMapBufferRange"},
+      {"xref": "0x6ff5a30", "operation": "glBufferSubData"},
+      {"xref": "0x7008db0", "operation": "OpenGL.UBOPoolSize registration"},
+      {"xref": "0x700d414", "operation": "GL_UNIFORM_BUFFER glBufferData"}
+    ],
+    "caveats": [
+      "The saved reports contain exclusive leaf rows, not caller-inclusive attribution.",
+      "Transport, kernel, ANGLE, allocator, and libc leaves can consume samples while the initiating Unreal caller is absent from the flat row.",
+      "Rows are rounded to 0.01 percentage point; no reported row does not prove zero execution.",
+      "The Shipping binary is stripped, and the ranges are exact-binary disassembly corridors rather than recovered function symbols."
+    ]
+  },
+  "results": [
+    {
+      "id": "performance-max-16k-on-demand",
+      "rhi_thread_total_percent": 31.49,
+      "transport_leaf_percent": 16.44,
+      "rhi_stripped_unreal_leaf_percent": 1.60,
+      "rhi_stripped_unreal_leaf_rows": 96,
+      "broad_opengl_neighborhood_percent": 0.10,
+      "broad_opengl_neighborhood_rows": 5,
+      "observed_rhi_executor_neighborhood_percent": 0.04,
+      "observed_rhi_executor_neighborhood_rows": 3,
+      "buffer_ubo_corridor_percent": 0.0,
+      "buffer_ubo_corridor_rows": 0
+    },
+    {
+      "id": "performance-max-16k-inline",
+      "rhi_thread_total_percent": 37.50,
+      "transport_leaf_percent": 19.78,
+      "rhi_stripped_unreal_leaf_percent": 1.90,
+      "rhi_stripped_unreal_leaf_rows": 87,
+      "broad_opengl_neighborhood_percent": 0.11,
+      "broad_opengl_neighborhood_rows": 4,
+      "observed_rhi_executor_neighborhood_percent": 0.09,
+      "observed_rhi_executor_neighborhood_rows": 3,
+      "buffer_ubo_corridor_percent": 0.0,
+      "buffer_ubo_corridor_rows": 0
+    },
+    {
+      "id": "performance-max-32k-on-demand",
+      "rhi_thread_total_percent": 33.93,
+      "transport_leaf_percent": 18.52,
+      "rhi_stripped_unreal_leaf_percent": 1.50,
+      "rhi_stripped_unreal_leaf_rows": 97,
+      "broad_opengl_neighborhood_percent": 0.09,
+      "broad_opengl_neighborhood_rows": 8,
+      "observed_rhi_executor_neighborhood_percent": 0.05,
+      "observed_rhi_executor_neighborhood_rows": 4,
+      "buffer_ubo_corridor_percent": 0.0,
+      "buffer_ubo_corridor_rows": 0
+    }
+  ],
+  "decision": {
+    "direct_ubo_leaf_attribution": "not_observed_in_flat_reports",
+    "interpretation": "The 31.49% control RHIThread share is a broad RHI/transport hotspot and must not be relabelled as UBO cost.",
+    "ubo_queue_order": "retain_priority_1_unpromoted_from_synthetic_strategy_and_transport_relevance",
+    "candidate_added": false,
+    "promotion": "none",
+    "capture_fix": "The late-PvP observer now pulls simpleperf.data, records its SHA-256, and rejects a profile if raw data is not retained, enabling caller-inclusive offline analysis on the next authenticated combat capture."
+  }
+}

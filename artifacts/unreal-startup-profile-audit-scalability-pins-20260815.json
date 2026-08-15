@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "source": {
+    "base_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini",
+    "base_profile_sha256": "b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef",
+    "candidate_profile": "artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max-scalability-pins.ini",
+    "candidate_profile_sha256": "67d361705f32b8c8d7766d26fcced1dc969b9b96e905b9bbc9d551ddf476974d",
+    "startup_log_sha256": "b802b12c7e8d4fa895ad3da55bc83ec08115a649108d3c0f5401af7d74917816",
+    "startup_log_embedded": false
+  },
+  "methodology": {
+    "attestation": "exact candidate-only CVar deltas observed in DeviceProfile push records",
+    "protected_override": "lower-priority write was logged as ignored and retained the candidate value",
+    "scope": "startup application and priority only; this is not a runtime FPS result"
+  },
+  "result": {
+    "delta_count": 14,
+    "startup_attested_count": 14,
+    "protected_override_count": 13,
+    "all_deltas_startup_attested": true
+  },
+  "deltas": [
+    {"key": "a.Budget.BudgetMs", "base_value": null, "candidate_value": "1.5", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "foliage.DensityScale", "base_value": null, "candidate_value": "0.5", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "grass.DensityScale", "base_value": null, "candidate_value": "0.5", "device_profile_push_records": 1, "protected_override_records": 0, "startup_attested": true},
+    {"key": "r.AnisotropicMaterials", "base_value": null, "candidate_value": "0", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.HairStrands.Visibility.MSAA.SamplePerPixel", "base_value": null, "candidate_value": "1", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.MotionBlur.HalfResGather", "base_value": null, "candidate_value": "1", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.SSGI.Quality", "base_value": null, "candidate_value": "0", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.SSS.HalfRes", "base_value": null, "candidate_value": "1", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.SSS.Quality", "base_value": null, "candidate_value": "0", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.SSS.SampleSet", "base_value": null, "candidate_value": "0", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.SSS.Scale", "base_value": null, "candidate_value": "0", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.Streaming.MaxNumTexturesToStreamPerFrame", "base_value": null, "candidate_value": "5", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.TranslucencyLightingVolume.Dim", "base_value": null, "candidate_value": "24", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true},
+    {"key": "r.Upscale.Quality", "base_value": null, "candidate_value": "1", "device_profile_push_records": 1, "protected_override_records": 1, "startup_attested": true}
+  ]
+}

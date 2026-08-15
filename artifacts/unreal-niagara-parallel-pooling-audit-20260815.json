@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "utc_date": "2026-08-15",
+  "source": {
+    "binary": "libUnreal.so pulled from the live TFT PBE process mapping",
+    "binary_sha256": "4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822",
+    "elf": "ELF64 AArch64, stripped",
+    "binary_embedded": false,
+    "live_process_id": 2718,
+    "live_load_bias": "0x783200b000"
+  },
+  "methodology": {
+    "name_lookup": "exact UTF-16LE CVar names; prefix collisions were resolved by requiring a UTF-16 NUL terminator",
+    "registration_xref": "AArch64 ADRP/ADD references and constructor storage operands",
+    "static_default": "four-byte .data word decoded with the final LOAD segment's 0xc000 VMA-to-file offset delta",
+    "live_read": "same four-byte storage read from /proc/PID/mem after verifying the mapped library SHA-256",
+    "scope": "capability/default/no-op audit; no late-PvP FPS is inferred"
+  },
+  "observations": [
+    {
+      "cvar": "fx.Niagara.SystemSimulation.AllowASync",
+      "name_vma": "0x474dca",
+      "registration_xref": "0x72f5688",
+      "storage_vma": "0xb9fdb30",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1,
+      "help": "If > 0, system simulation tick is parallelized."
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.AllowASyncSimCache",
+      "name_vma": "0x3dae0c",
+      "registration_xref": "0x72f56b8",
+      "storage_vma": "0xb9fdb34",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1,
+      "help": "If > 0, sim cache tick is parallelized."
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.TickBatchMode",
+      "name_vma": "0x3f44d0",
+      "registration_xref": "0x72f574c",
+      "storage_vma": "0xb9fdb3c",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1,
+      "help": "0 spawns tasks for all batches; 1 spawns tasks for all but the final batch; 2 runs all instances inline with the main simulation task."
+    },
+    {
+      "cvar": "fx.Niagara.SystemSimulation.BatchGPUTickSubmit",
+      "name_vma": "0xf91bc",
+      "registration_xref": "0x72f57ac",
+      "storage_vma": "0xb9fdb44",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1,
+      "help": "Non-zero allows GPU ticks to be submitted to the render thread in batches."
+    },
+    {
+      "cvar": "fx.Niagara.WorldManager.ObjectPoolEnabled",
+      "name_vma": "0x44bc44",
+      "registration_xref": "0x7325da0",
+      "storage_vma": "0xb9fdcb4",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1
+    },
+    {
+      "cvar": "FX.NiagaraComponentPool.Enable",
+      "name_vma": "0x3c97ec",
+      "registration_xref": "0x717f248",
+      "storage_vma": "0xb9fd748",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1
+    },
+    {
+      "cvar": "FX.ParticleSystemPool.Enable",
+      "name_vma": "0x3c982a",
+      "registration_xref": "0x6b75404",
+      "storage_vma": "0xb9f8c9c",
+      "compiled_value_u32": 1,
+      "live_value_u32": 1
+    },
+    {
+      "cvar": "r.MeshDrawCommands.DynamicInstancing",
+      "name_vma": "0x332c08",
+      "registration_xref": "0x5daa99c",
+      "compiled_value_u32": 1,
+      "evidence": "mov w25,#1 at 0x5daa964; str w25,[sp,#4] at 0x5daa9b8"
+    },
+    {
+      "cvar": "r.MeshDrawCommands.ParallelPassSetup",
+      "name_vma": "0x23cfe0",
+      "registration_xref": "0x5ba6334",
+      "compiled_value_u32": 1,
+      "evidence": "mov w22,#1 at 0x5ba6330; str w22,[sp,#4] at 0x5ba6350"
+    }
+  ],
+  "decisions": {
+    "already_parallel_or_pooled": "reject no-op enablement ideas for Niagara async simulation, sim-cache async, GPU tick batching, component pools, object pools, dynamic instancing, and parallel pass setup",
+    "TickBatchMode": "screen an unpromoted one-factor value 0 candidate because it schedules the final batch as a task; reject if task overhead, frame tails, crashes, or effect correctness regress",
+    "boundary": "mode 0 is a supported scheduling mode, not an established optimization; only matched late-PvP data can promote it"
+  }
+}
