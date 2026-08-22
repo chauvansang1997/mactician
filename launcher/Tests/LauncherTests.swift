@@ -604,8 +604,8 @@ enum LauncherTests {
             "app bundle identifier"
         )
         try expect(infoPlist["CFBundleIconFile"] as? String == "Mactician.icns", "launcher icon name")
-        try expect(infoPlist["CFBundleShortVersionString"] as? String == "1.0.4", "launcher version")
-        try expect(infoPlist["CFBundleVersion"] as? String == "40", "launcher build")
+        try expect(infoPlist["CFBundleShortVersionString"] as? String == "1.0.7", "launcher version")
+        try expect(infoPlist["CFBundleVersion"] as? String == "43", "launcher build")
         try expect(
             infoPlist["SUFeedURL"] as? String == "https://sergeinaumov.dev/mactician/updates/appcast.xml",
             "Sparkle appcast URL"
@@ -703,10 +703,10 @@ enum LauncherTests {
             "emulator host icon name"
         )
         try expect(
-            emulatorHostInfo["CFBundleShortVersionString"] as? String == "1.0.4",
+            emulatorHostInfo["CFBundleShortVersionString"] as? String == "1.0.7",
             "emulator host version"
         )
-        try expect(emulatorHostInfo["CFBundleVersion"] as? String == "40", "emulator host build")
+        try expect(emulatorHostInfo["CFBundleVersion"] as? String == "43", "emulator host build")
         try expect(
             emulatorHostInfo["CFBundleIdentifier"] as? String
                 == "dev.sergeinaumov.mactician.game-host",
@@ -960,9 +960,15 @@ enum LauncherTests {
 
         let runtimeResources = temporary.appendingPathComponent("runtime-resources", isDirectory: true)
         let runtimeTemplate = runtimeResources.appendingPathComponent("RuntimeTemplate", isDirectory: true)
+        let emulatorHostTemplate = runtimeResources.deletingLastPathComponent().appendingPathComponent(
+            "Helpers/Mactician Game Host.app",
+            isDirectory: true
+        )
         let runtimeRoot = temporary.appendingPathComponent("runtime-data", isDirectory: true)
         try FileManager.default.createDirectory(at: runtimeTemplate, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: emulatorHostTemplate, withIntermediateDirectories: true)
         try Data("new runtime".utf8).write(to: runtimeTemplate.appendingPathComponent("marker.txt"))
+        try Data("signed host".utf8).write(to: emulatorHostTemplate.appendingPathComponent("marker.txt"))
         let runtimePaths = try LauncherPaths(root: runtimeRoot, resources: runtimeResources)
         try FileManager.default.createDirectory(at: runtimePaths.runtimeProject, withIntermediateDirectories: true)
         try Data("old runtime".utf8).write(to: runtimePaths.runtimeProject.appendingPathComponent("old.txt"))
@@ -977,6 +983,15 @@ enum LauncherTests {
         try expect(
             !FileManager.default.fileExists(atPath: runtimePaths.runtimeProject.appendingPathComponent("old.txt").path),
             "runtime refresh replaces the previous template"
+        )
+        try expect(
+            try String(
+                contentsOf: runtimePaths.runtimeProject.appendingPathComponent(
+                    "Mactician Game Host.app/marker.txt"
+                ),
+                encoding: .utf8
+            ) == "signed host",
+            "runtime refresh installs the signed game host from Contents/Helpers"
         )
 
         let rootRuntimeScript = try String(
@@ -1104,10 +1119,26 @@ enum LauncherTests {
             buildScript.contains("Mactician.app")
                 && buildScript.contains("Mactician-$VERSION.dmg")
                 && buildScript.contains("-volname \"Mactician\"")
+                && buildScript.contains("Contents/Helpers/Mactician Game Host.app")
+                && buildScript.contains("-framework AppKit")
                 && buildScript.contains("Android_Codex.DeviceProfiles.effects-high.ini")
                 && buildScript.contains("Android_Codex.DeviceProfiles.effects-performance.ini")
                 && buildScript.contains("Android_Codex.DeviceProfiles.performance-max.ini"),
             "release artifact naming"
+        )
+        let emulatorHostSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent("EmulatorHost/main.c"),
+            encoding: .utf8
+        )
+        let iconRegistration = emulatorHostSource.range(of: "prepare_application_identity();")
+        let emulatorExec = emulatorHostSource.range(of: "execv(emulator, argv);")
+        try expect(
+            emulatorHostSource.contains("[NSApplication sharedApplication]")
+                && emulatorHostSource.contains("setApplicationIconImage")
+                && iconRegistration != nil
+                && emulatorExec != nil
+                && iconRegistration!.lowerBound < emulatorExec!.lowerBound,
+            "game host registers its Dock icon before replacing itself with QEMU"
         )
         let profileRoot = sourceRoot.deletingLastPathComponent()
             .appendingPathComponent("artifacts/tft-pbe-18.1-5212127-angle-opengl")

@@ -29,11 +29,12 @@ readonly APP="$DIST_DIR/Mactician.app"
 readonly DMG="$DIST_DIR/Mactician-$VERSION.dmg"
 readonly APP_CONTENTS="$APP/Contents"
 readonly RESOURCES="$APP_CONTENTS/Resources"
+readonly HELPERS="$APP_CONTENTS/Helpers"
 readonly THIRD_PARTY_LICENSES="$RESOURCES/ThirdPartyLicenses"
 readonly FRAMEWORKS="$APP_CONTENTS/Frameworks"
 readonly GAME_RESOURCES="$RESOURCES/Game"
 readonly RUNTIME_TEMPLATE="$RESOURCES/RuntimeTemplate"
-readonly EMULATOR_APP="$RUNTIME_TEMPLATE/Mactician Game Host.app"
+readonly EMULATOR_APP="$HELPERS/Mactician Game Host.app"
 readonly EMULATOR_APP_CONTENTS="$EMULATOR_APP/Contents"
 readonly APK_DIR="${TFT_GAME_APK_DIR:-}"
 
@@ -80,7 +81,7 @@ copy_plain_file() {
 }
 
 rm -rf "$BUILD_DIR/module-cache" "$APP" "$DMG"
-mkdir -p "$BUILD_DIR" "$APP_CONTENTS/MacOS" "$RESOURCES" "$FRAMEWORKS" "$GAME_RESOURCES" \
+mkdir -p "$BUILD_DIR" "$APP_CONTENTS/MacOS" "$RESOURCES" "$HELPERS" "$FRAMEWORKS" "$GAME_RESOURCES" \
     "$THIRD_PARTY_LICENSES" \
     "$RUNTIME_TEMPLATE/scripts" \
     "$RUNTIME_TEMPLATE/artifacts/tft-pbe-18.1-5212127-angle-opengl" \
@@ -127,9 +128,11 @@ done
 copy_plain_file "$LAUNCHER_DIR/Resources/EmulatorHost-Info.plist" "$EMULATOR_APP_CONTENTS/Info.plist"
 copy_plain_file "$LAUNCHER_DIR/Resources/EmulatorIcon.icns" "$EMULATOR_APP_CONTENTS/Resources/EmulatorIcon.icns"
 xcrun clang \
+    -x objective-c \
     -O2 \
     -target arm64-apple-macosx12.0 \
     "$LAUNCHER_DIR/EmulatorHost/main.c" \
+    -framework AppKit \
     -o "$EMULATOR_APP_CONTENTS/MacOS/MacticianGameHost"
 
 for apk in ${(k)EXPECTED_APK_HASHES}; do
@@ -170,7 +173,7 @@ plutil -lint "$RESOURCES/QEMU-Hypervisor.entitlements" >/dev/null
 # on the local filesystem, then copy the verified result back into dist.
 readonly SIGNING_ROOT="$(mktemp -d /private/tmp/mactician-sign.XXXXXX)"
 readonly SIGNING_APP="$SIGNING_ROOT/Mactician.app"
-readonly SIGNING_EMULATOR_APP="$SIGNING_APP/Contents/Resources/RuntimeTemplate/Mactician Game Host.app"
+readonly SIGNING_EMULATOR_APP="$SIGNING_APP/Contents/Helpers/Mactician Game Host.app"
 readonly SIGNING_SPARKLE="$SIGNING_APP/Contents/Frameworks/Sparkle.framework"
 readonly SIGNING_SPARKLE_VERSION="$SIGNING_SPARKLE/Versions/B"
 cleanup_signing_root() {
@@ -210,7 +213,9 @@ rm -rf "$APP"
 mv "$SIGNING_APP" "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 if (( PUBLIC_RELEASE == 1 )) && [[ -x /usr/bin/syspolicy_check ]]; then
-    syspolicy_check notary-submission "$APP"
+    if ! syspolicy_check notary-submission "$APP"; then
+        print -u2 "Warning: local syspolicy_check did not accept the unnotarized app; continuing to the authoritative Apple notary service."
+    fi
 fi
 
 readonly DMG_ROOT="$SIGNING_ROOT/dmg-root"
@@ -250,6 +255,8 @@ if (( PUBLIC_RELEASE == 1 )); then
     xcrun stapler staple "$DMG"
     xcrun stapler validate "$DMG"
     spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+    xcrun stapler staple "$APP"
+    xcrun stapler validate "$APP"
     if [[ -x /usr/bin/syspolicy_check ]]; then
         syspolicy_check distribution "$APP"
     fi

@@ -1,8 +1,26 @@
 # Changelog
 
-The current application metadata is version 1.0.4, build 40.
+The current application metadata is version 1.0.7, build 43.
 
 ## Unreleased
+
+No changes yet.
+
+## 1.0.7 — 2026-08-22
+
+### Fixed
+
+- Restore the branded active-game Dock icon instead of showing the generic
+  `qemu-system-aarch64` executable icon.
+
+## 1.0.6 — 2026-08-20
+
+### Changed
+
+- Sign the launcher and bundled game host with Apple Developer ID, enable the
+  hardened runtime, and notarize the release for standard Gatekeeper approval.
+
+## 1.0.5 — 2026-08-15
 
 ### Added
 

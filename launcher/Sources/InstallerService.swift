@@ -667,6 +667,10 @@ final class InstallerService {
         let next = paths.staging.appendingPathComponent("runtime-project-\(UUID().uuidString)", isDirectory: true)
         defer { try? fileManager.removeItem(at: next) }
         try fileManager.copyItem(at: paths.runtimeTemplate, to: next)
+        try fileManager.copyItem(
+            at: paths.emulatorHostTemplate,
+            to: next.appendingPathComponent("Mactician Game Host.app", isDirectory: true)
+        )
 
         guard fileManager.fileExists(atPath: paths.runtimeProject.path) else {
             try fileManager.moveItem(at: next, to: paths.runtimeProject)

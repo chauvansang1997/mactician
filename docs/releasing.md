@@ -1,6 +1,6 @@
 # Releasing
 
-The current metadata is Mactician version 1.0.4, build 40. Version and build
+The current metadata is Mactician version 1.0.7, build 43. Version and build
 numbers live in `launcher/Info.plist` and the matching emulator-host plist.
 Release notes live under `launcher/Resources/release-notes/` using the short
 version as the filename.
@@ -32,19 +32,18 @@ redirect, alias, or compatibility wrapper is part of the release.
    verify size, origin, and hash independently.
 5. Run the full fast validation and review `git diff --check`.
 
-## Build the current ad-hoc artifact
+## Build the public artifact
 
 ```sh
-PROJECT_DIR="$PWD"
-TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks" \
-  ./scripts/build-mactician.command
+./scripts/build-mactician-release.command
 ```
 
-The v1 build signs nested code and the app with an ad-hoc identity and verifies
-the final app and disk image. It is not Apple-notarized, and users must approve
-the first launch through System Settings → Privacy & Security → Open Anyway.
-The same pipeline can use Developer ID, hardened runtime, notarization, and a
-stapled ticket in a future release. No production upload occurs in this step.
+The release wrapper uses the pinned APK directory, automatically selects the
+installed Developer ID Application identity, enables hardened runtime and
+secure timestamps, submits the DMG for Apple notarization, staples both the DMG
+and app tickets, and runs the final Gatekeeper checks. No production upload
+occurs in this step. Use `build-mactician.command` directly only for a local
+ad-hoc validation build.
 
 Keep the notarization profile, Developer ID private key, Apple credentials, and
 Sparkle private Ed25519 key in Keychain. Never pass secret values as committed
@@ -72,20 +71,21 @@ Production-specific destinations have no secret or machine-specific defaults:
 : "${MACTICIAN_UPDATE_SSH_TARGET:?Set MACTICIAN_UPDATE_SSH_TARGET in the environment}"
 : "${MACTICIAN_UPDATE_SSH_PORT:?Set MACTICIAN_UPDATE_SSH_PORT in the environment}"
 : "${MACTICIAN_UPDATE_REMOTE_ROOT:?Set MACTICIAN_UPDATE_REMOTE_ROOT in the environment}"
-./scripts/publish-mactician-update.command --allow-adhoc
+./scripts/publish-mactician-update.command
 ```
 
 Optional public settings are `MACTICIAN_UPDATE_BASE_URL`,
 `MACTICIAN_UPDATE_PRODUCT_URL`, `MACTICIAN_UPDATE_WORKDIR`, `MACTICIAN_APP`,
 `MACTICIAN_DMG`, and `MACTICIAN_RELEASE_NOTES`.
 
-The publisher verifies the ad-hoc app and DMG, uploads immutable versioned
-artifacts first, uploads the next appcast under a temporary name, then atomically
-moves the appcast into place last. Never overwrite an already published
-versioned DMG with different bytes.
+The publisher verifies the Developer ID app and stapled DMG, uploads immutable
+versioned artifacts first, uploads the next appcast under a temporary name,
+then atomically moves the appcast into place last. Never overwrite an already
+published versioned DMG with different bytes.
 
-`--allow-adhoc` accepts only a valid ad-hoc-signed app, verifies the DMG, and
-still requires the Sparkle Ed25519 signature.
+`--allow-adhoc` is reserved for an explicitly approved temporary release. It
+accepts only a valid ad-hoc-signed app, verifies the DMG, and still requires the
+Sparkle Ed25519 signature.
 
 ## Publish a TFT PBE game update
 

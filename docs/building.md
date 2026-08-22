@@ -80,8 +80,20 @@ ready state. It is deliberately excluded from normal pull-request CI.
 
 ## Optional Developer ID and notarized build
 
-Store notarization credentials with `notarytool` under a Keychain profile, then
-export the identity/profile in the invoking environment:
+After the `mactician-notary` Keychain profile and a single Developer ID
+Application identity are installed, build a public release with one command:
+
+```sh
+./scripts/build-mactician-release.command
+```
+
+The wrapper uses `private/tft-pbe-apks` by default, validates the notarization
+profile before compiling, and automatically selects the installed Developer ID
+Application identity. Override `TFT_GAME_APK_DIR`,
+`MACTICIAN_NOTARY_PROFILE`, or `MACTICIAN_CODESIGN_IDENTITY` only when the
+machine has a non-default setup.
+
+The lower-level equivalent is:
 
 ```sh
 PROJECT_DIR="$PWD"
@@ -95,9 +107,6 @@ The script requires a Developer ID Application identity when either public
 release setting is present. It enables hardened runtime, uses secure timestamps,
 submits the DMG, waits for acceptance, staples and validates the ticket, and
 assesses the distribution.
-
-The initial v1 release remains ad-hoc signed; this section documents the future
-Developer ID-capable path rather than the current release identity.
 
 ## Environment variables
 

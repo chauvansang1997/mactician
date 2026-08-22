@@ -19,7 +19,7 @@ Built for two tacticians. Shared with everyone.
 
 ## Project status
 
-- Version: **1.0.4** (build 40)
+- Version: **1.0.7** (build 43)
 - Host architecture: **Apple Silicon (`arm64`)**
 - Minimum deployment target: **macOS 12.0**, enforced by the build target and
   runtime preflight
@@ -50,9 +50,8 @@ is configured independently.
   without clearing unrelated app data.
 - Provides game hotkeys for shop, reroll, XP, item/trait and player/damage tabs,
   plus the macOS window-fill shortcut.
-- Uses a Sparkle appcast with Ed25519 archive verification for updates; the
-  current v1 release is ad-hoc signed and the workflow also supports future
-  Developer ID signing and notarization.
+- Uses a Sparkle appcast with Ed25519 archive verification for updates; public
+  releases are Developer ID signed and Apple-notarized.
 - Sends one unlinkable first-session event, offers separately consented extended
   diagnostics, and can display validated operator messages. See
   [Telemetry and privacy](docs/telemetry.md).
@@ -87,9 +86,8 @@ Verify the version, build number,
 and the SHA-256 published with that release before opening it.
 
 1. Open the DMG and drag **Mactician** to **Applications**.
-2. Open it. Version 1.0.4 is ad-hoc signed and not Apple-notarized, so macOS may
-   block the first launch. In **System Settings → Privacy & Security**, confirm
-   **Open Anyway**, then approve the second launch prompt.
+2. Open it. Version 1.0.7 is signed with Apple Developer ID and notarized, so
+   Gatekeeper can verify it normally without **Open Anyway**.
 3. Review and accept the Android SDK terms, then choose **Install**. About
    2.3 GB is downloaded before extraction and AVD provisioning.
 4. Enter Riot credentials manually inside the official TFT client.
@@ -128,7 +126,7 @@ TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks" \
 ```
 
 This produces `dist/Mactician.app` and
-`dist/Mactician-1.0.4.dmg`, signed ad hoc for local validation.
+`dist/Mactician-1.0.7.dmg`, signed ad hoc for local validation.
 
 ### Provisioning integration test
 
@@ -156,8 +154,8 @@ commit identity secrets, passwords, private update keys, or notarization
 credentials. See [Building](docs/building.md) and
 [Releasing](docs/releasing.md) for the verified workflow.
 
-Developer ID signing and notarization are supported by the pipeline but are not
-used for the initial ad-hoc v1 release.
+Public releases use Developer ID signing, hardened runtime, Apple notarization,
+and stapled tickets; local builds remain ad hoc by default.
 
 ## How it works
 

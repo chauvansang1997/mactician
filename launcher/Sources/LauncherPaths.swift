@@ -63,6 +63,12 @@ struct LauncherPaths {
     var launcherLog: URL { logDirectory.appendingPathComponent("launcher.log") }
     var gameResources: URL { bundleResources.appendingPathComponent("Game", isDirectory: true) }
     var runtimeTemplate: URL { bundleResources.appendingPathComponent("RuntimeTemplate", isDirectory: true) }
+    var emulatorHostTemplate: URL {
+        bundleResources.deletingLastPathComponent().appendingPathComponent(
+            "Helpers/Mactician Game Host.app",
+            isDirectory: true
+        )
+    }
     var manifest: URL { bundleResources.appendingPathComponent("release-manifest.json") }
     var shaderProfile: URL {
         runtimeProject.appendingPathComponent("artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini")

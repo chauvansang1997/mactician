@@ -297,6 +297,7 @@ if (( ${#gles_ubo_fixture_summaries} != 1 )) \
     exit 1
 fi
 xcrun clang \
+    -x objective-c \
     -target arm64-apple-macosx12.0 \
     -fsyntax-only \
     "$LAUNCHER_DIR/EmulatorHost/main.c"
@@ -984,9 +985,17 @@ fi
 
 if ! grep -Fq -- '--options runtime' "$PROJECT_DIR/scripts/build-mactician.command" \
         || ! grep -Fq 'notarytool submit' "$PROJECT_DIR/scripts/build-mactician.command" \
-        || ! grep -Fq 'stapler staple' "$PROJECT_DIR/scripts/build-mactician.command" \
+        || ! grep -Fq 'stapler staple "$DMG"' "$PROJECT_DIR/scripts/build-mactician.command" \
+        || ! grep -Fq 'stapler staple "$APP"' "$PROJECT_DIR/scripts/build-mactician.command" \
         || ! grep -Fq 'Sparkle.framework' "$PROJECT_DIR/scripts/build-mactician.command"; then
     print -u2 "Public release signing and notarization workflow is incomplete."
+    exit 1
+fi
+
+if [[ ! -x "$PROJECT_DIR/scripts/build-mactician-release.command" ]] \
+        || ! grep -Fq 'mactician-notary' "$PROJECT_DIR/scripts/build-mactician-release.command" \
+        || ! grep -Fq 'Developer ID Application:' "$PROJECT_DIR/scripts/build-mactician-release.command"; then
+    print -u2 "One-command public release wrapper is incomplete."
     exit 1
 fi
 

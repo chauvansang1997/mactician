@@ -121,7 +121,8 @@ done < <(find . -type f -name '*.json' -not -path './.git/*' \
     -not -path './launcher/.build/*' -not -path './dist/*' \
     -not -path './dist-build*/*' -not -path './runtime/*' | LC_ALL=C sort)
 
-xcrun clang -target arm64-apple-macosx12.0 -fsyntax-only launcher/EmulatorHost/main.c
+xcrun clang -x objective-c -target arm64-apple-macosx12.0 \
+    -fsyntax-only launcher/EmulatorHost/main.c
 
 typeset developer_root="/""Users/"
 typeset local_user="sb""naumov"
