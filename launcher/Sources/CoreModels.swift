@@ -88,14 +88,14 @@ struct GameRelease: Codable, Equatable {
     let apks: [GameAPK]
 
     func validate() throws {
-        guard packageName == "com.riotgames.league.teamfighttactics.pbe",
+        guard packageName == "com.riotgames.league.teamfighttactics",
               !version.isEmpty,
               baseSHA256.isLowercaseSHA256,
               (1 ... 32).contains(apks.count),
               Set(apks.map(\.name)).count == apks.count,
               apks.first?.name == "base.apk",
               apks.first?.sha256 == baseSHA256 else {
-            throw LauncherError.invalidManifest("Invalid TFT PBE release")
+            throw LauncherError.invalidManifest("Invalid TFT release")
         }
         for apk in apks {
             guard !apk.name.contains("/"), apk.name.hasSuffix(".apk"),
@@ -296,6 +296,14 @@ enum GuestResourceOptions {
         let hostMemoryMB = Int(physicalMemoryBytes / 1_048_576)
         let maximum = min(16_384, max(4_096, hostMemoryMB - 4_096))
         return Array(stride(from: 4_096, through: maximum, by: 2_048))
+    }
+
+    static func installationMemoryMB(physicalMemoryBytes: UInt64) -> Int {
+        selection(
+            saved: defaultMemoryMB,
+            options: memoryMB(physicalMemoryBytes: physicalMemoryBytes),
+            fallback: defaultMemoryMB
+        )
     }
 
     static func cpuCores(logicalCPUCount: Int) -> [Int] {

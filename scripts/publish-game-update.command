@@ -91,7 +91,7 @@ done
 
 jq -n \
     --arg publishedAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
-    --arg packageName "com.riotgames.league.teamfighttactics.pbe" \
+    --arg packageName "com.riotgames.league.teamfighttactics" \
     --arg version "$VERSION" \
     --argjson versionCode "$VERSION_CODE" \
     --arg baseSHA256 "$BASE_SHA256" \
@@ -122,7 +122,7 @@ jq -n \
     '{schemaVersion: 1, payload: $payload, signature: $signature}' >"$MANIFEST"
 
 if (( PREPARE_ONLY == 1 )); then
-    print "Prepared signed TFT PBE $VERSION feed: $MANIFEST"
+    print "Prepared signed TFT $VERSION feed: $MANIFEST"
     exit 0
 fi
 
@@ -161,4 +161,4 @@ scp -P "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
 ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "$SSH_TARGET" \
     "chmod 644 -- $(remote_quote "$REMOTE_MANIFEST_NEXT") && mv -f -- $(remote_quote "$REMOTE_MANIFEST_NEXT") $(remote_quote "$REMOTE_ROOT/game/manifest.json")"
 
-print "Published TFT PBE $VERSION to $UPDATE_BASE_URL/game/manifest.json"
+print "Published TFT $VERSION to $UPDATE_BASE_URL/game/manifest.json"

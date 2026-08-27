@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly SERIAL="${TFT_SERIAL:-emulator-5582}"
-readonly PACKAGE="${TFT_PACKAGE:-com.riotgames.league.teamfighttactics.pbe}"
+readonly PACKAGE="${TFT_PACKAGE:-com.riotgames.league.teamfighttactics}"
 readonly ADB="${TFT_ADB:-$(command -v adb 2>/dev/null || true)}"
 readonly EXPECTED_BINARY_SHA256="${TFT_UNREAL_BINARY_SHA256:-4edeb935c1e800c6846aac77d066d9895435d0e68e2d585937601484e7589822}"
 readonly JQ="${TFT_JQ:-$(command -v jq 2>/dev/null || true)}"

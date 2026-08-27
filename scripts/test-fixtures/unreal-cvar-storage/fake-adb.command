@@ -12,7 +12,7 @@ shift
 readonly shell_command="$*"
 
 case "$shell_command" in
-    'pidof com.riotgames.league.teamfighttactics.pbe')
+    'pidof com.riotgames.league.teamfighttactics')
         print 4242
         ;;
     'su 0 cat /proc/4242/maps')

@@ -1,10 +1,24 @@
 # Changelog
 
-The current application metadata is version 1.0.7, build 43.
+The current application metadata is version 1.1.0, build 45.
 
 ## Unreleased
 
-No changes yet.
+## 1.1.0 — 2026-08-27
+
+### Changed
+
+- Switch the bundled game channel to the live TFT `18.1-5388569` release.
+- Remove test-client wording and use a dedicated live-game Android device. The
+  channel switch requires one Riot sign-in.
+
+## 1.0.8 — 2026-08-25
+
+### Changed
+
+- Add best-effort support for Apple Silicon Macs with 8 GB of unified memory by
+  using a 4 GB Android guest during installation and gameplay; Macs with 16 GB
+  or more retain the existing 6 GB default.
 
 ## 1.0.7 — 2026-08-22
 

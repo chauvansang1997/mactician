@@ -63,23 +63,23 @@ while kill -0 "$child_pid" >/dev/null 2>&1; do
             && "$TFT_ADB" -s "$TFT_SERIAL" get-state >/dev/null 2>&1 \
             && [[ "$("$TFT_ADB" -s "$TFT_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
         "$TFT_ADB" -s "$TFT_SERIAL" shell cmd locale set-app-locales \
-            com.riotgames.league.teamfighttactics.pbe "$TFT_GAME_LANGUAGE" \
+            com.riotgames.league.teamfighttactics "$TFT_GAME_LANGUAGE" \
             >>"$TFT_LAUNCH_LOG" 2>&1 || true
         locale_applied=1
     fi
     if (( emitted_ready == 0 )) \
             && "$TFT_ADB" -s "$TFT_SERIAL" get-state >/dev/null 2>&1 \
-            && [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof com.riotgames.league.teamfighttactics.pbe 2>/dev/null | tr -d '\r')" ]]; then
-        emit "{\"event\":\"ready\",\"message\":\"TFT PBE is open\",\"serial\":\"$TFT_SERIAL\"}"
+            && [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof com.riotgames.league.teamfighttactics 2>/dev/null | tr -d '\r')" ]]; then
+        emit "{\"event\":\"ready\",\"message\":\"TFT is open\",\"serial\":\"$TFT_SERIAL\"}"
         emitted_ready=1
     fi
     if (( emitted_ready == 1 )); then
-        if [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof com.riotgames.league.teamfighttactics.pbe 2>/dev/null | tr -d '\r')" ]]; then
+        if [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof com.riotgames.league.teamfighttactics 2>/dev/null | tr -d '\r')" ]]; then
             missing_game_checks=0
         else
             (( missing_game_checks += 1 ))
             if (( missing_game_checks >= 3 )); then
-                emit "{\"event\":\"game_stopped\",\"message\":\"TFT PBE closed\",\"serial\":\"$TFT_SERIAL\"}"
+                emit "{\"event\":\"game_stopped\",\"message\":\"TFT closed\",\"serial\":\"$TFT_SERIAL\"}"
                 break
             fi
         fi
@@ -94,7 +94,7 @@ if (( stop_requested == 1 || emitted_ready == 1 )); then
     normal_stop=1
 fi
 if (( child_status == 42 && stop_requested == 0 )); then
-    emit '{"event":"error","message":"The TFT PBE version changed. The old OpenGL overlay will not be applied. Prepare a new verified private launcher build.","code":42}'
+    emit '{"event":"error","message":"The TFT version changed. The old OpenGL overlay will not be applied. Prepare a new verified private launcher build.","code":42}'
 elif (( child_status != 0 && normal_stop == 0 )); then
     emit "{\"event\":\"error\",\"message\":\"Could not launch TFT. Open the log or repair the installation.\",\"code\":$child_status}"
 fi

@@ -156,16 +156,10 @@ ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "$SSH_TARGET" \
     "mkdir -p -- $(remote_quote "$REMOTE_ROOT/releases")"
 
 typeset -a RELEASE_FILES
-RELEASE_FILES=()
-for release_file in "$UPDATE_ROOT"/*(.N); do
-    if [[ "${release_file:t}" != "appcast.xml" ]]; then
-        RELEASE_FILES+=("$release_file")
-    fi
+RELEASE_FILES=("$RELEASE_ARCHIVE" "$RELEASE_NOTES")
+for release_file in "$UPDATE_ROOT"/Mactician"$BUILD"-*.delta(.N); do
+    RELEASE_FILES+=("$release_file")
 done
-if (( ${#RELEASE_FILES[@]} == 0 )); then
-    print -u2 "No Sparkle release files were generated."
-    exit 1
-fi
 
 scp -P "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
     "${RELEASE_FILES[@]}" \

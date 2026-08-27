@@ -353,7 +353,7 @@ final class LauncherModel: ObservableObject {
         launchEffectsQuality = effectsQuality
         activeConfiguration = selectedConfiguration
         mode = .launching
-        status = "Launching TFT PBE…"
+        status = "Launching TFT…"
         detail = "Starting the game in \(selectedLanguage.title)."
         do {
             try runtime.start(
@@ -404,7 +404,7 @@ final class LauncherModel: ObservableObject {
         mode = .installing
         isPaused = false
         installerPhase = .checking
-        status = "Checking for TFT PBE updates…"
+        status = "Checking for TFT updates…"
         detail = "Updates are downloaded securely from sergeinaumov.dev."
         progress = 0
         installer.updateGame(currentState: installState, progress: { [weak self] value in
@@ -422,7 +422,7 @@ final class LauncherModel: ObservableObject {
                 isGameUpdateAvailable = false
                 mode = .ready
                 progress = 1
-                status = update.changed ? "TFT PBE updated" : "TFT PBE is up to date"
+                status = update.changed ? "TFT updated" : "TFT is up to date"
                 detail = update.changed
                     ? "The new game version is ready to play."
                     : "No game update is available."
@@ -459,7 +459,7 @@ final class LauncherModel: ObservableObject {
                 if availability.isAvailable {
                     let versionCode = availability.release.versionCode.map(String.init) ?? "unknown"
                     SystemServices.appendLog(
-                        "TFT PBE update available: \(availability.release.version) "
+                        "TFT update available: \(availability.release.version) "
                             + "(versionCode \(versionCode)).",
                         to: paths.launcherLog
                     )
@@ -569,7 +569,7 @@ final class LauncherModel: ObservableObject {
         case .ready:
             mode = .playing
             gameSessionTracker.start()
-            status = "TFT PBE is open"
+            status = "TFT is open"
             detail = "Space — shop  •  D — reroll  •  F — XP  •  Tab — items/traits  •  V — players/damage  •  Control + Fn + F — fill window."
             loginAnimationRepair.start(adb: paths.adb, log: paths.launcherLog)
             if let emulatorPID {

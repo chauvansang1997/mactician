@@ -16,7 +16,7 @@ enum LauncherTests {
         try expect(manifest.game.apks.count == 4, "APK count")
         let hostedPrivateKey = Curve25519.Signing.PrivateKey()
         let hostedRelease = GameRelease(
-            packageName: "com.riotgames.league.teamfighttactics.pbe",
+            packageName: "com.riotgames.league.teamfighttactics",
             version: "18.2-test",
             versionCode: 8_220_001,
             baseSHA256: String(repeating: "a", count: 64),
@@ -85,7 +85,7 @@ enum LauncherTests {
             )
             throw TestFailure("tampered hosted game feed was accepted")
         } catch let error as LauncherError {
-            try expect(error == .integrity("The TFT PBE feed signature is invalid"), "tampered game feed rejection")
+            try expect(error == .integrity("The TFT feed signature is invalid"), "tampered game feed rejection")
         }
         try expect(
             manifest.profiles.map(\.id) == ["balanced", "quality", "ultra", "4k"],
@@ -142,13 +142,13 @@ enum LauncherTests {
             "V players-and-damage hotkey touch targets"
         )
         let surfaceLayer = """
-            RequestedLayerState{SurfaceView[com.riotgames.league.teamfighttactics.pbe/com.epicgames.unreal.GameActivity](BLAST)#103 parentId=102}
+            RequestedLayerState{SurfaceView[com.riotgames.league.teamfighttactics/com.epicgames.unreal.GameActivity](BLAST)#103 parentId=102}
             """
         try expect(
             SurfaceFlingerFPS.gameLayer(
                 from: surfaceLayer,
-                package: "com.riotgames.league.teamfighttactics.pbe"
-            ) == "SurfaceView[com.riotgames.league.teamfighttactics.pbe/com.epicgames.unreal.GameActivity](BLAST)#103",
+                package: "com.riotgames.league.teamfighttactics"
+            ) == "SurfaceView[com.riotgames.league.teamfighttactics/com.epicgames.unreal.GameActivity](BLAST)#103",
             "FPS overlay SurfaceFlinger layer selection"
         )
         let latencyOutput = """
@@ -457,11 +457,11 @@ enum LauncherTests {
         )
         let gameActivityOutput = """
             Display #0:
-              topResumedActivity=ActivityRecord{abc123 u0 com.riotgames.league.teamfighttactics.pbe/com.epicgames.unreal.GameActivity t42}
+              topResumedActivity=ActivityRecord{abc123 u0 com.riotgames.league.teamfighttactics/com.epicgames.unreal.GameActivity t42}
             """
         let loginActivityOutput = """
-            mResumedActivity: ActivityRecord{old u0 com.riotgames.league.teamfighttactics.pbe/com.epicgames.unreal.GameActivity t41}
-            topResumedActivity=ActivityRecord{def456 u0 com.riotgames.league.teamfighttactics.pbe/com.riotgames.platformui.MobileFREWebViewActivity t42}
+            mResumedActivity: ActivityRecord{old u0 com.riotgames.league.teamfighttactics/com.epicgames.unreal.GameActivity t41}
+            topResumedActivity=ActivityRecord{def456 u0 com.riotgames.league.teamfighttactics/com.riotgames.platformui.MobileFREWebViewActivity t42}
             """
         try expect(
             BridgeAndroidActivityClassifier.classify(dumpsysOutput: gameActivityOutput) == .gameplay
@@ -604,8 +604,8 @@ enum LauncherTests {
             "app bundle identifier"
         )
         try expect(infoPlist["CFBundleIconFile"] as? String == "Mactician.icns", "launcher icon name")
-        try expect(infoPlist["CFBundleShortVersionString"] as? String == "1.0.7", "launcher version")
-        try expect(infoPlist["CFBundleVersion"] as? String == "43", "launcher build")
+        try expect(infoPlist["CFBundleShortVersionString"] as? String == "1.1.0", "launcher version")
+        try expect(infoPlist["CFBundleVersion"] as? String == "45", "launcher build")
         try expect(
             infoPlist["SUFeedURL"] as? String == "https://sergeinaumov.dev/mactician/updates/appcast.xml",
             "Sparkle appcast URL"
@@ -686,7 +686,7 @@ enum LauncherTests {
                 && EmulatorBrandingPatch.sourceTitleFormat
                     == Data("%s Emulator - %s:%d\0".utf8)
                 && EmulatorBrandingPatch.patchedTitleFormat
-                    == Data("Mactician: TFT PBE\0\0".utf8),
+                    == Data("Mactician: TFT\0\0\0\0\0\0".utf8),
             "QEMU window title patch"
         )
         let emulatorHostData = try Data(
@@ -703,10 +703,10 @@ enum LauncherTests {
             "emulator host icon name"
         )
         try expect(
-            emulatorHostInfo["CFBundleShortVersionString"] as? String == "1.0.7",
+            emulatorHostInfo["CFBundleShortVersionString"] as? String == "1.1.0",
             "emulator host version"
         )
-        try expect(emulatorHostInfo["CFBundleVersion"] as? String == "43", "emulator host build")
+        try expect(emulatorHostInfo["CFBundleVersion"] as? String == "45", "emulator host build")
         try expect(
             emulatorHostInfo["CFBundleIdentifier"] as? String
                 == "dev.sergeinaumov.mactician.game-host",
@@ -742,6 +742,13 @@ enum LauncherTests {
             GuestResourceOptions.memoryMB(physicalMemoryBytes: 16 * 1024 * 1024 * 1024)
                 == [4096, 6144, 8192, 10240, 12288],
             "16 GB host RAM choices"
+        )
+        try expect(
+            GuestResourceOptions.installationMemoryMB(physicalMemoryBytes: 8 * 1024 * 1024 * 1024) == 4096
+                && GuestResourceOptions.installationMemoryMB(
+                    physicalMemoryBytes: 16 * 1024 * 1024 * 1024
+                ) == 6144,
+            "host-sized installation RAM"
         )
         try expect(
             GuestResourceOptions.memoryMB(physicalMemoryBytes: 32 * 1024 * 1024 * 1024).last == 16384,
@@ -872,12 +879,17 @@ enum LauncherTests {
             "persistent split APK installation"
         )
         try expect(
-            InstallerService.emulatorArguments(initializeData: true, logicalCPUCount: 8).contains("-wipe-data"),
+            InstallerService.emulatorArguments(
+                initializeData: true,
+                logicalCPUCount: 8,
+                memoryMB: 4096
+            ).contains("-wipe-data"),
             "first boot initializes userdata"
         )
         let provisioningArguments = InstallerService.emulatorArguments(
             initializeData: false,
-            logicalCPUCount: 8
+            logicalCPUCount: 8,
+            memoryMB: 4096
         )
         try expect(
             provisioningArguments.contains("-dns-server")
@@ -885,7 +897,15 @@ enum LauncherTests {
             "public DNS avoids local network access"
         )
         try expect(
-            !InstallerService.emulatorArguments(initializeData: false, logicalCPUCount: 8).contains("-wipe-data"),
+            provisioningArguments.joined(separator: " ").contains("-memory 4096"),
+            "low-memory provisioning"
+        )
+        try expect(
+            !InstallerService.emulatorArguments(
+                initializeData: false,
+                logicalCPUCount: 8,
+                memoryMB: 4096
+            ).contains("-wipe-data"),
             "normal boot preserves userdata"
         )
 
@@ -1068,7 +1088,7 @@ enum LauncherTests {
             try expect(!descriptor.isEmpty, "\(localization) Mactician descriptor")
             if localization == "en" {
                 try expect(
-                    descriptor == "TFT PBE launcher for Apple Silicon",
+                    descriptor == "TFT launcher for Apple Silicon",
                     "English Mactician descriptor"
                 )
             }
@@ -1140,8 +1160,21 @@ enum LauncherTests {
                 && iconRegistration!.lowerBound < emulatorExec!.lowerBound,
             "game host registers its Dock icon before replacing itself with QEMU"
         )
-        let profileRoot = sourceRoot.deletingLastPathComponent()
-            .appendingPathComponent("artifacts/tft-pbe-18.1-5212127-angle-opengl")
+        let artifactsRoot = sourceRoot.deletingLastPathComponent()
+            .appendingPathComponent("artifacts", isDirectory: true)
+        let profileRoot = try FileManager.default.contentsOfDirectory(
+            at: artifactsRoot,
+            includingPropertiesForKeys: nil
+        ).first { candidate in
+            FileManager.default.fileExists(
+                atPath: candidate.appendingPathComponent(
+                    "Android_Codex.DeviceProfiles.effects-high.ini"
+                ).path
+            )
+        }
+        guard let profileRoot else {
+            throw TestFailure("effects profile artifacts were not found")
+        }
         let highEffectsProfile = try String(
             contentsOf: profileRoot.appendingPathComponent(
                 "Android_Codex.DeviceProfiles.effects-high.ini"

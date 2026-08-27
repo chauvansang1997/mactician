@@ -6,7 +6,7 @@
 - Xcode Command Line Tools (`xcrun swiftc`, `xcrun clang`, `codesign`, `plutil`)
 - zsh, `jq`, `rg`, `curl`, `tar`, `zip`, `unzip`, `shasum`, and `xmllint`
 - Node.js only for `scripts/login-tft-from-keychain.command`
-- Four exact unmodified TFT PBE `18.1-5212127` APK splits in a private local
+- Four exact unmodified TFT `18.1-5388569` APK splits in a private local
   directory; names, sizes, and hashes are in
   `launcher/Resources/release-manifest.json`
 
@@ -55,7 +55,7 @@ xcrun clang -target arm64-apple-macosx12.0 -fsyntax-only launcher/EmulatorHost/m
 
 ```sh
 PROJECT_DIR="$PWD"
-TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks" \
+TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-apks" \
   ./scripts/build-mactician.command
 ```
 
@@ -87,7 +87,7 @@ Application identity are installed, build a public release with one command:
 ./scripts/build-mactician-release.command
 ```
 
-The wrapper uses `private/tft-pbe-apks` by default, validates the notarization
+The wrapper uses `private/tft-apks` by default, validates the notarization
 profile before compiling, and automatically selects the installed Developer ID
 Application identity. Override `TFT_GAME_APK_DIR`,
 `MACTICIAN_NOTARY_PROFILE`, or `MACTICIAN_CODESIGN_IDENTITY` only when the
@@ -99,7 +99,7 @@ The lower-level equivalent is:
 PROJECT_DIR="$PWD"
 : "${MACTICIAN_CODESIGN_IDENTITY:?Set MACTICIAN_CODESIGN_IDENTITY in the environment}"
 : "${MACTICIAN_NOTARY_PROFILE:?Set MACTICIAN_NOTARY_PROFILE in the environment}"
-TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks" \
+TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-apks" \
   ./scripts/build-mactician.command
 ```
 

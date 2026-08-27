@@ -19,7 +19,7 @@ readonly INHERITED_AVD_LOCK_OWNER="${TFT_AVD_LOCK_OWNER_PID:-}"
 readonly SERIAL="${TFT_SERIAL:-emulator-5582}"
 readonly EMULATOR_PORT="${TFT_EMULATOR_PORT:-${SERIAL#emulator-}}"
 readonly BOOT_TIMEOUT_SECONDS="${TFT_BOOT_TIMEOUT_SECONDS:-120}"
-readonly PACKAGE="com.riotgames.league.teamfighttactics.pbe"
+readonly PACKAGE="com.riotgames.league.teamfighttactics"
 readonly ACTIVITY="com.epicgames.unreal.SplashActivity"
 readonly ANGLE_BASE_FEATURES="exposeNonConformantExtensionsAndVersions:exposeES32ForTesting"
 readonly ANGLE_EXTRA_FEATURES="${TFT_ANGLE_EXTRA_FEATURES:-}"
@@ -57,11 +57,11 @@ readonly INPUT_TRAITS_POINT="${TFT_INPUT_TRAITS_POINT:-0.029,0.04}"
 readonly INPUT_ITEMS_POINT="${TFT_INPUT_ITEMS_POINT:-0.059,0.04}"
 readonly INPUT_DAMAGE_POINT="${TFT_INPUT_DAMAGE_POINT:-0.947,0.04}"
 readonly INPUT_PLAYERS_POINT="${TFT_INPUT_PLAYERS_POINT:-0.975,0.04}"
-readonly DIRECT_VULKAN_DIR="$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-direct-vulkan"
+readonly DIRECT_VULKAN_DIR="$PROJECT_DIR/artifacts/tft-18.1-direct-vulkan"
 readonly DIRECT_VULKAN_APK="$DIRECT_VULKAN_DIR/base-direct-vulkan.apk"
 readonly DIRECT_VULKAN_PROFILE="$DIRECT_VULKAN_DIR/Android_Codex.DeviceProfiles.ini"
 readonly DIRECT_VULKAN_REMOTE_DIR="/data/local/tmp/tft-direct-vulkan"
-readonly ANGLE_OPENGL_DIR="$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-angle-opengl"
+readonly ANGLE_OPENGL_DIR="$PROJECT_DIR/artifacts/tft-18.1-angle-opengl"
 readonly ANGLE_OPENGL_APK="${TFT_ANGLE_OPENGL_APK:-$ANGLE_OPENGL_DIR/base-angle-opengl.apk}"
 readonly ANGLE_OPENGL_PROFILE_OVERRIDE="${TFT_ANGLE_OPENGL_PROFILE:-}"
 readonly ANGLE_OPENGL_PROFILE="${ANGLE_OPENGL_PROFILE_OVERRIDE:-$ANGLE_OPENGL_DIR/Android_Codex.DeviceProfiles.ini}"
@@ -833,7 +833,7 @@ if [[ "$INPUT_BRIDGE_ENABLED" == "1" ]]; then
 fi
 
 if ! "$ADB" -s "$SERIAL" shell pm path "$PACKAGE" | grep -q '^package:'; then
-    print "TFT PBE is not installed in the rootable AVD. The launcher does not copy the APK or private data."
+    print "TFT is not installed in the rootable AVD. The launcher does not copy the APK or private data."
     exit 1
 fi
 
@@ -912,7 +912,7 @@ if [[ -n "$OVERLAY_APK" ]]; then
             | awk '{ print $1 }'
     )"
     if [[ "$INSTALLED_BASE_SHA256" != "$ORIGINAL_BASE_SHA256" ]]; then
-        print "The installed base.apk does not match the signed TFT PBE update manifest."
+        print "The installed base.apk does not match the signed TFT update manifest."
         print "Actual SHA-256: $INSTALLED_BASE_SHA256"
         exit 42
     fi

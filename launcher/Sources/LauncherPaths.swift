@@ -40,8 +40,8 @@ struct LauncherPaths {
     var adb: URL { sdk.appendingPathComponent("platform-tools/adb") }
     var systemImage: URL { sdk.appendingPathComponent("system-images/android-36/google_apis/arm64-v8a", isDirectory: true) }
     var avdHome: URL { root.appendingPathComponent("avd", isDirectory: true) }
-    var avdDirectory: URL { avdHome.appendingPathComponent("TftPBE.avd", isDirectory: true) }
-    var avdINI: URL { avdHome.appendingPathComponent("TftPBE.ini") }
+    var avdDirectory: URL { avdHome.appendingPathComponent("Tft.avd", isDirectory: true) }
+    var avdINI: URL { avdHome.appendingPathComponent("Tft.ini") }
     var avdBootCompleted: URL { avdDirectory.appendingPathComponent("bootcompleted.ini") }
     var runtimeProject: URL { root.appendingPathComponent("runtime-project", isDirectory: true) }
     var downloads: URL { root.appendingPathComponent("downloads", isDirectory: true) }
@@ -71,18 +71,18 @@ struct LauncherPaths {
     }
     var manifest: URL { bundleResources.appendingPathComponent("release-manifest.json") }
     var shaderProfile: URL {
-        runtimeProject.appendingPathComponent("artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini")
+        runtimeProject.appendingPathComponent("artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini")
     }
     var performanceMaxProfile: URL {
-        runtimeProject.appendingPathComponent("artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini")
+        runtimeProject.appendingPathComponent("artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini")
     }
     func effectsProfile(for quality: EffectsQuality) -> URL {
         runtimeProject.appendingPathComponent(
-            "artifacts/tft-pbe-18.1-5212127-angle-opengl/\(quality.profileFilename)"
+            "artifacts/tft-18.1-angle-opengl/\(quality.profileFilename)"
         )
     }
     var overlayAPK: URL {
-        runtimeProject.appendingPathComponent("artifacts/tft-pbe-18.1-5212127-angle-opengl/base-angle-opengl.apk")
+        runtimeProject.appendingPathComponent("artifacts/tft-18.1-angle-opengl/base-angle-opengl.apk")
     }
     var runtimeHelper: URL { bundleResources.appendingPathComponent("launcher-runtime.command") }
     var qemuHypervisorEntitlements: URL {

@@ -1,6 +1,6 @@
 # Releasing
 
-The current metadata is Mactician version 1.0.7, build 43. Version and build
+The current metadata is Mactician version 1.1.0, build 45. Version and build
 numbers live in `launcher/Info.plist` and the matching emulator-host plist.
 Release notes live under `launcher/Resources/release-notes/` using the short
 version as the filename.
@@ -79,15 +79,16 @@ Optional public settings are `MACTICIAN_UPDATE_BASE_URL`,
 `MACTICIAN_DMG`, and `MACTICIAN_RELEASE_NOTES`.
 
 The publisher verifies the Developer ID app and stapled DMG, uploads immutable
-versioned artifacts first, uploads the next appcast under a temporary name,
-then atomically moves the appcast into place last. Never overwrite an already
-published versioned DMG with different bytes.
+artifacts for the current version and its deltas, uploads the next appcast under
+a temporary name, then atomically moves the appcast into place last. Older
+release files remain untouched on the server. Never overwrite a published
+versioned DMG with different bytes.
 
 `--allow-adhoc` is reserved for an explicitly approved temporary release. It
 accepts only a valid ad-hoc-signed app, verifies the DMG, and still requires the
 Sparkle Ed25519 signature.
 
-## Publish a TFT PBE game update
+## Publish a TFT game update
 
 Game releases use a separate signed manifest and do not require a new Mactician
 build. Put the complete official split APK set in one directory and run:

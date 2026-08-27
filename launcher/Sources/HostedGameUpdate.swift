@@ -17,7 +17,7 @@ struct HostedGameFeed: Codable, Equatable {
               ISO8601DateFormatter().date(from: publishedAt) != nil,
               let versionCode = release.versionCode,
               versionCode > 0 else {
-            throw LauncherError.invalidManifest("Invalid hosted TFT PBE feed")
+            throw LauncherError.invalidManifest("Invalid hosted TFT feed")
         }
         try release.validate()
         for apk in release.apks {
@@ -53,16 +53,16 @@ enum HostedGameUpdate {
               let payload = Data(base64Encoded: envelope.payload),
               let signature = Data(base64Encoded: envelope.signature),
               let publicKeyData = Data(base64Encoded: publicKeyBase64) else {
-            throw LauncherError.invalidManifest("Invalid hosted TFT PBE feed envelope")
+            throw LauncherError.invalidManifest("Invalid hosted TFT feed envelope")
         }
         let publicKey: Curve25519.Signing.PublicKey
         do {
             publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: publicKeyData)
         } catch {
-            throw LauncherError.integrity("The TFT PBE feed public key is invalid")
+            throw LauncherError.integrity("The TFT feed public key is invalid")
         }
         guard publicKey.isValidSignature(signature, for: payload) else {
-            throw LauncherError.integrity("The TFT PBE feed signature is invalid")
+            throw LauncherError.integrity("The TFT feed signature is invalid")
         }
         let feed = try JSONDecoder().decode(HostedGameFeed.self, from: payload)
         try feed.validate()

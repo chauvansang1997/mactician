@@ -189,7 +189,7 @@ private struct FPSOverlayConfiguration {
 }
 
 private final class FPSOverlaySession {
-    private static let package = "com.riotgames.league.teamfighttactics.pbe"
+    private static let package = "com.riotgames.league.teamfighttactics"
     private static let pollInterval: TimeInterval = 1
 
     private let configuration: FPSOverlayConfiguration

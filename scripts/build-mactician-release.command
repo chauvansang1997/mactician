@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly PROJECT_DIR="${0:A:h:h}"
-readonly DEFAULT_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks"
+readonly DEFAULT_APK_DIR="$PROJECT_DIR/private/tft-apks"
 readonly NOTARY_PROFILE="${MACTICIAN_NOTARY_PROFILE:-mactician-notary}"
 
 typeset signing_identity="${MACTICIAN_CODESIGN_IDENTITY:-}"

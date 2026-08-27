@@ -131,8 +131,8 @@ enum SystemServices {
         guard architecture == "arm64" else {
             throw LauncherError.preflight("This launcher supports Apple Silicon Macs only")
         }
-        guard ProcessInfo.processInfo.physicalMemory >= 15 * 1024 * 1024 * 1024 else {
-            throw LauncherError.preflight("This profile requires a Mac with 16 GB of memory")
+        guard ProcessInfo.processInfo.physicalMemory >= 7 * 1024 * 1024 * 1024 else {
+            throw LauncherError.preflight("Mactician requires a Mac with at least 8 GB of memory")
         }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let freeBytes = try availableBytes(at: root)

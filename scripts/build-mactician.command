@@ -45,10 +45,10 @@ fi
 
 typeset -A EXPECTED_APK_HASHES
 EXPECTED_APK_HASHES=(
-    base.apk 2f4996a620623d0b958383bfe58bdec78fb70cca095099ca2474f3d08c62ff18
-    split_config.arm64_v8a.apk a7332efdddf070e724f75c41adb1a829bc3c442bd53ae79fe8cc55075e951939
-    split_config.en.apk b57210f98779e12d6f6874c378942f67a55459e75549bbf97487a2d6e0084cd5
-    split_config.hdpi.apk f3b653ba01a8d352f6a25ad6ecbae8892b13aa44daad6b74aebdb5a5be05d756
+    base.apk 52c27162d1e472d4ecae9cd5eee59e17b6051fff45a5f017ed13a03a0a2f5bd2
+    config.arm64_v8a.apk e8a4a3eafe9fc5cc305cf89c84da12245ac7854d98007aafd6f8baa11987c515
+    config.en.apk f0a117f3aed9c7e05cffbc4d5d436a2998017c2ef2b3e2b8301bd5224abc80a2
+    config.mdpi.apk fd3b018ca111c4907f427d5d7a9bef9ae39c6d2888f1ee5a751433660c3acff6
 )
 
 for apk expected_hash in ${(kv)EXPECTED_APK_HASHES}; do
@@ -59,7 +59,7 @@ for apk expected_hash in ${(kv)EXPECTED_APK_HASHES}; do
     fi
     actual_hash="$(shasum -a 256 "$apk_path" | awk '{print $1}')"
     if [[ "$actual_hash" != "$expected_hash" ]]; then
-        print -u2 "SHA-256 for $apk does not match the TFT PBE 18.1 manifest."
+        print -u2 "SHA-256 for $apk does not match the TFT 18.1 manifest."
         exit 1
     fi
 done
@@ -84,7 +84,7 @@ rm -rf "$BUILD_DIR/module-cache" "$APP" "$DMG"
 mkdir -p "$BUILD_DIR" "$APP_CONTENTS/MacOS" "$RESOURCES" "$HELPERS" "$FRAMEWORKS" "$GAME_RESOURCES" \
     "$THIRD_PARTY_LICENSES" \
     "$RUNTIME_TEMPLATE/scripts" \
-    "$RUNTIME_TEMPLATE/artifacts/tft-pbe-18.1-5212127-angle-opengl" \
+    "$RUNTIME_TEMPLATE/artifacts/tft-18.1-angle-opengl" \
     "$EMULATOR_APP_CONTENTS/MacOS" "$EMULATOR_APP_CONTENTS/Resources" \
     "$DIST_DIR"
 
@@ -145,13 +145,13 @@ copy_plain_file "$PROJECT_DIR/scripts/run-asg-experiment.command" "$RUNTIME_TEMP
 copy_plain_file "$PROJECT_DIR/scripts/watch-root-pso.command" "$RUNTIME_TEMPLATE/scripts/watch-root-pso.command"
 copy_plain_file "$PROJECT_DIR/scripts/android-environment.sh" "$RUNTIME_TEMPLATE/scripts/android-environment.sh"
 copy_plain_file "$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini" \
-    "$RUNTIME_TEMPLATE/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini"
+    "$RUNTIME_TEMPLATE/artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini"
 copy_plain_file "$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini" \
-    "$RUNTIME_TEMPLATE/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini"
+    "$RUNTIME_TEMPLATE/artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.performance-max.ini"
 copy_plain_file "$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.effects-high.ini" \
-    "$RUNTIME_TEMPLATE/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.effects-high.ini"
+    "$RUNTIME_TEMPLATE/artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.effects-high.ini"
 copy_plain_file "$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.effects-performance.ini" \
-    "$RUNTIME_TEMPLATE/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.effects-performance.ini"
+    "$RUNTIME_TEMPLATE/artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.effects-performance.ini"
 chmod 755 \
     "$RUNTIME_TEMPLATE/run-tft-root-affinity.command" \
     "$RUNTIME_TEMPLATE/run-tft-angle-opengl.command" \

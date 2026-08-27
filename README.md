@@ -1,8 +1,8 @@
 # Mactician
 
-**A native, open-source TFT PBE launcher for Apple Silicon.**
+**A native, open-source TFT launcher for Apple Silicon.**
 
-Mactician prepares and manages everything needed to play TFT PBE on a modern
+Mactician prepares and manages everything needed to play TFT on a modern
 Mac—without Android Studio, Terminal commands, or manual configuration.
 
 Created by [Sergei Naumov](https://sergeinaumov.dev/writing), a backend and
@@ -19,20 +19,20 @@ Built for two tacticians. Shared with everyone.
 
 ## Project status
 
-- Version: **1.0.7** (build 43)
+- Version: **1.1.0** (build 45)
 - Host architecture: **Apple Silicon (`arm64`)**
 - Minimum deployment target: **macOS 12.0**, enforced by the build target and
   runtime preflight
 - Status: **experimental, best effort**; there is no support or compatibility
   SLA
-- Compatibility is pinned to TFT PBE `18.1-5212127`, Android Emulator 37.1.11,
+- Compatibility is pinned to TFT `18.1-5388569`, Android Emulator 37.1.11,
   and Android 36. A game or emulator update can require a new Mactician release.
 
 ## Preview
 
-![Mactician running TFT PBE on macOS](docs/images/mactician-running-tft-pbe.webp)
+![Mactician running TFT on macOS](docs/images/mactician-running-tft-pbe.webp)
 
-Mactician keeps launcher controls and the running TFT PBE window side by side.
+Mactician keeps launcher controls and the running TFT window side by side.
 The native SwiftUI interface is localized in English and Russian; game language
 is configured independently.
 
@@ -61,7 +61,7 @@ is configured independently.
 ### To run a release
 
 - An Apple Silicon Mac with macOS 12.0 or later.
-- At least 16 GB of system memory; the launcher validates this preflight.
+- At least 8 GB of system memory; 8 GB Macs use a reduced 4 GB Android guest.
 - At least 25 GiB of free disk space for downloads, extraction, the AVD, TFT
   assets, and update headroom.
 - Internet access to Google's Android repository and TFT services.
@@ -72,7 +72,7 @@ is configured independently.
 
 ### To build from source
 
-Xcode Command Line Tools, zsh, `jq`, and four exact unmodified TFT PBE APK
+Xcode Command Line Tools, zsh, `jq`, and four exact unmodified TFT APK
 splits matching the release manifest are required. Node.js is needed only for
 the optional Keychain-backed login helper. Developer ID credentials, a
 notarytool Keychain profile, and a Sparkle Ed25519 key are release-only
@@ -86,7 +86,7 @@ Verify the version, build number,
 and the SHA-256 published with that release before opening it.
 
 1. Open the DMG and drag **Mactician** to **Applications**.
-2. Open it. Version 1.0.7 is signed with Apple Developer ID and notarized, so
+2. Open it. Version 1.1.0 is signed with Apple Developer ID and notarized, so
    Gatekeeper can verify it normally without **Open Anyway**.
 3. Review and accept the Android SDK terms, then choose **Install**. About
    2.3 GB is downloaded before extraction and AVD provisioning.
@@ -121,12 +121,12 @@ Apple Silicon production source set.
 
 ```sh
 PROJECT_DIR="$PWD"
-TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks" \
+TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-apks" \
   ./scripts/build-mactician.command
 ```
 
 This produces `dist/Mactician.app` and
-`dist/Mactician-1.0.7.dmg`, signed ad hoc for local validation.
+`dist/Mactician-1.1.0.dmg`, signed ad hoc for local validation.
 
 ### Provisioning integration test
 
@@ -145,7 +145,7 @@ data, so it is not run on every pull request.
 PROJECT_DIR="$PWD"
 : "${MACTICIAN_CODESIGN_IDENTITY:?Set MACTICIAN_CODESIGN_IDENTITY in the environment}"
 : "${MACTICIAN_NOTARY_PROFILE:?Set MACTICIAN_NOTARY_PROFILE in the environment}"
-TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-pbe-apks" \
+TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-apks" \
   ./scripts/build-mactician.command
 ```
 

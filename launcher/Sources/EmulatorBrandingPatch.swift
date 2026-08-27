@@ -16,7 +16,7 @@ enum EmulatorBrandingPatch {
     static let patchedIconInstruction = Data([0x1f, 0x20, 0x03, 0xd5])
     static let titleFormatOffset: UInt64 = 0x1a1e891
     static let sourceTitleFormat = fixedWidthData("%s Emulator - %s:%d", byteCount: 20)
-    static let patchedTitleFormat = fixedWidthData("Mactician: TFT PBE", byteCount: 20)
+    static let patchedTitleFormat = fixedWidthData("Mactician: TFT", byteCount: 20)
 
     static func isSupportedOrPatched(_ qemu: URL) -> Bool {
         guard let iconInstruction = try? data(

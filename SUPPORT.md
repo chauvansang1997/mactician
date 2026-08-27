@@ -1,7 +1,7 @@
 # Support
 
 Mactician is maintained on a best-effort basis without a service-level
-agreement. Support focuses on the latest Mactician release. TFT PBE and Android
+agreement. Support focuses on the latest Mactician release. TFT and Android
 Emulator updates can temporarily break compatibility with a pinned release.
 
 Use [GitHub Issues](https://github.com/tweet9ra/mactician/issues) for reproducible

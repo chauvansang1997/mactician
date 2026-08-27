@@ -2330,6 +2330,14 @@ if ! grep -Fq -- '--allow-adhoc' "$PROJECT_DIR/scripts/publish-mactician-update.
     exit 1
 fi
 
+if ! grep -Fq 'RELEASE_FILES=("$RELEASE_ARCHIVE" "$RELEASE_NOTES")' \
+        "$PROJECT_DIR/scripts/publish-mactician-update.command" \
+        || ! grep -Fq 'Mactician"$BUILD"-*.delta(.N)' \
+            "$PROJECT_DIR/scripts/publish-mactician-update.command"; then
+    print -u2 "Mactician publisher must upload only the current release artifacts."
+    exit 1
+fi
+
 if ! grep -Fq 'or .gles_stress_succeeded == true' \
         "$PROJECT_DIR/scripts/run-performance-campaign.command" \
         || ! grep -Fq 'or .gles_draw_succeeded == true' \
@@ -2360,7 +2368,7 @@ env \
     TFT_LAUNCH_LOG="$LIFECYCLE_ROOT/runtime.log" \
     TFT_ADB=/usr/bin/false \
     TFT_AVD_HOME="$LIFECYCLE_ROOT/avd" \
-    TFT_AVD_NAME=TftPBE \
+    TFT_AVD_NAME=Tft \
     TFT_SERIAL=emulator-5582 \
     TFT_DISPLAY_SIZE=1920x1080 \
     TFT_DISPLAY_DENSITY=320 \
@@ -2418,7 +2426,7 @@ fi
 if [[ "$*" == *" cmd locale set-app-locales"* ]]; then
     exit 0
 fi
-if [[ "$*" == *" pidof com.riotgames.league.teamfighttactics.pbe" ]]; then
+if [[ "$*" == *" pidof com.riotgames.league.teamfighttactics" ]]; then
     typeset -i count=0
     [[ -f "$TFT_FAKE_ADB_STATE" ]] && count="$(<"$TFT_FAKE_ADB_STATE")"
     (( count += 1 ))
@@ -2435,7 +2443,7 @@ env \
     TFT_ADB="$GAME_EXIT_ADB" \
     TFT_FAKE_ADB_STATE="$GAME_EXIT_STATE" \
     TFT_AVD_HOME="$LIFECYCLE_ROOT/avd" \
-    TFT_AVD_NAME=TftPBE \
+    TFT_AVD_NAME=Tft \
     TFT_SERIAL=emulator-5582 \
     TFT_DISPLAY_SIZE=1920x1080 \
     TFT_DISPLAY_DENSITY=320 \

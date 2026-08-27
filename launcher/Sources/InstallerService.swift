@@ -79,13 +79,13 @@ final class InstallerService {
         ] + apkPaths)
     }
 
-    static func emulatorArguments(initializeData: Bool, logicalCPUCount: Int) -> [String] {
+    static func emulatorArguments(initializeData: Bool, logicalCPUCount: Int, memoryMB: Int) -> [String] {
         var arguments = [
-            "@TftPBE", "-id", "TFT-TftPBE", "-port", "5582", "-gpu", "host",
+            "@Tft", "-id", "TFT-Tft", "-port", "5582", "-gpu", "host",
             "-skin", "1920x1080", "-vsync-rate", "60",
             "-dns-server", "1.1.1.1,8.8.8.8",
             "-cores", "\(HostSizing.guestCPUCores(logicalCPUCount: logicalCPUCount))",
-            "-memory", "6144", "-no-snapshot", "-no-metrics", "-no-boot-anim",
+            "-memory", "\(memoryMB)", "-no-snapshot", "-no-metrics", "-no-boot-anim",
             "-no-window", "-no-audio", "-crash-report-mode", "disabled"
         ]
         if initializeData {
@@ -170,7 +170,7 @@ final class InstallerService {
                    let remoteVersionCode = release.versionCode,
                    remoteVersionCode < installedVersionCode {
                     throw LauncherError.unsupportedGame(
-                        "The hosted TFT PBE release is older than the installed game"
+                        "The hosted TFT release is older than the installed game"
                     )
                 }
                 let availability = GameUpdateAvailability(
@@ -224,7 +224,7 @@ final class InstallerService {
             hosted = try fetchHostedGameFeed(progress: progress)
         } catch {
             SystemServices.appendLog(
-                "Hosted TFT PBE feed unavailable, using bundled fallback: \(error.localizedDescription)",
+                "Hosted TFT feed unavailable, using bundled fallback: \(error.localizedDescription)",
                 to: paths.launcherLog
             )
             hosted = nil
@@ -286,12 +286,15 @@ final class InstallerService {
         let overlayHash = try buildOverlay(release: gameRelease, resources: gameResources)
 
         progressOnMain(progress, .init(phase: .creatingAVD, message: "Creating a clean Android device…", fraction: 0.91))
-        try createAVDIfNeeded()
+        let installationMemoryMB = GuestResourceOptions.installationMemoryMB(
+            physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory
+        )
+        try createAVDIfNeeded(memoryMB: installationMemoryMB)
         state.stage = .avdCreated
         state.overlaySHA256 = overlayHash
         try SystemServices.saveState(state, to: paths.stateFile)
 
-        progressOnMain(progress, .init(phase: .installingGame, message: "Installing TFT PBE…", fraction: 0.94))
+        progressOnMain(progress, .init(phase: .installingGame, message: "Installing TFT…", fraction: 0.94))
         try provisionGame(release: gameRelease, resources: gameResources)
         state.stage = .ready
         state.gameVersion = gameRelease.version
@@ -314,7 +317,7 @@ final class InstallerService {
     ) throws -> GameUpdateResult {
         progressOnMain(progress, .init(
             phase: .checking,
-            message: "Checking for TFT PBE updates…",
+            message: "Checking for TFT updates…",
             fraction: 0
         ))
         try Self.prepareDirectories(at: paths)
@@ -323,7 +326,7 @@ final class InstallerService {
         if let installedVersionCode = currentState.gameVersionCode,
            let remoteVersionCode = release.versionCode,
            remoteVersionCode < installedVersionCode {
-            throw LauncherError.unsupportedGame("The hosted TFT PBE release is older than the installed game")
+            throw LauncherError.unsupportedGame("The hosted TFT release is older than the installed game")
         }
 
         if currentState.gameVersion == release.version,
@@ -332,7 +335,7 @@ final class InstallerService {
             state.gameVersionCode = release.versionCode
             try SystemServices.saveState(state, to: paths.stateFile)
             try saveHostedGameFeed(hosted.data)
-            progressOnMain(progress, .init(phase: .finished, message: "TFT PBE is up to date", fraction: 1))
+            progressOnMain(progress, .init(phase: .finished, message: "TFT is up to date", fraction: 1))
             return GameUpdateResult(state: state, release: release, changed: false)
         }
 
@@ -353,7 +356,7 @@ final class InstallerService {
         let overlayHash = try buildOverlay(release: release, resources: resources)
         progressOnMain(progress, .init(
             phase: .installingGame,
-            message: "Updating TFT PBE…",
+            message: "Updating TFT…",
             fraction: 0.94
         ))
         try provisionGame(release: release, resources: resources)
@@ -367,7 +370,7 @@ final class InstallerService {
         try SystemServices.saveState(state, to: paths.stateFile)
         try saveHostedGameFeed(hosted.data)
         try? FileManager.default.removeItem(at: paths.downloads)
-        progressOnMain(progress, .init(phase: .finished, message: "TFT PBE updated", fraction: 1))
+        progressOnMain(progress, .init(phase: .finished, message: "TFT updated", fraction: 1))
         return GameUpdateResult(state: state, release: release, changed: true)
     }
 
@@ -405,7 +408,7 @@ final class InstallerService {
         try downloadHostedFile(
             url: MacticianIdentity.gameUpdateURL,
             to: partial,
-            displayName: "TFT PBE update information",
+            displayName: "TFT update information",
             expectedSize: nil,
             completedBytes: 0,
             totalBytes: 1,
@@ -414,7 +417,7 @@ final class InstallerService {
         let attributes = try FileManager.default.attributesOfItem(atPath: partial.path)
         let size = (attributes[.size] as? NSNumber)?.int64Value ?? -1
         guard (1 ... 1_048_576).contains(size) else {
-            throw LauncherError.integrity("The TFT PBE update information is too large")
+            throw LauncherError.integrity("The TFT update information is too large")
         }
         let data = try Data(contentsOf: partial)
         let feed = try HostedGameUpdate.decodeAndVerify(data)
@@ -756,7 +759,7 @@ final class InstallerService {
         )
     }
 
-    private func createAVDIfNeeded() throws {
+    private func createAVDIfNeeded(memoryMB: Int) throws {
         let fileManager = FileManager.default
         let essentials = [
             paths.avdDirectory.appendingPathComponent("config.ini"),
@@ -773,11 +776,11 @@ final class InstallerService {
         if fileManager.fileExists(atPath: paths.avdDirectory.path) {
             try fileManager.removeItem(at: paths.avdDirectory)
         }
-        let nextAVD = paths.staging.appendingPathComponent("TftPBE-\(UUID().uuidString).avd", isDirectory: true)
+        let nextAVD = paths.staging.appendingPathComponent("Tft-\(UUID().uuidString).avd", isDirectory: true)
         defer { try? fileManager.removeItem(at: nextAVD) }
         try fileManager.createDirectory(at: nextAVD, withIntermediateDirectories: true)
         let config = """
-        AvdId=TftPBE
+        AvdId=Tft
         avd.ini.displayname=Mactician
         abi.type=arm64-v8a
         hw.cpu.arch=arm64
@@ -785,7 +788,7 @@ final class InstallerService {
         hw.lcd.density=320
         hw.lcd.height=1080
         hw.lcd.width=1920
-        hw.ramSize=6144
+        hw.ramSize=\(memoryMB)
         hw.vmHeapSize=576
         hw.gpu.enabled=yes
         hw.gpu.mode=host
@@ -806,7 +809,7 @@ final class InstallerService {
         let ini = """
         avd.ini.encoding=UTF-8
         path=\(paths.avdDirectory.path)
-        path.rel=TftPBE.avd
+        path.rel=Tft.avd
         target=android-36
         """
         try SystemServices.run(paths.qemuImg, [
@@ -836,9 +839,13 @@ final class InstallerService {
 
         let emulator = Process()
         emulator.executableURL = paths.emulator
+        let memoryMB = GuestResourceOptions.installationMemoryMB(
+            physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory
+        )
         emulator.arguments = Self.emulatorArguments(
             initializeData: !FileManager.default.fileExists(atPath: paths.avdBootCompleted.path),
-            logicalCPUCount: ProcessInfo.processInfo.processorCount
+            logicalCPUCount: ProcessInfo.processInfo.processorCount,
+            memoryMB: memoryMB
         )
         emulator.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
         let log = try SystemServices.appendHandle(for: paths.launcherLog)
@@ -906,7 +913,7 @@ final class InstallerService {
             "-s", "emulator-5582", "shell", "sha256sum", basePath
         ]), environment: environment).split(separator: " ").first.map(String.init)
         guard guestHash == release.baseSHA256 else {
-            throw LauncherError.unsupportedGame("The installed TFT PBE version does not match verified version \(release.version)")
+            throw LauncherError.unsupportedGame("The installed TFT version does not match verified version \(release.version)")
         }
         // Android 16 can acknowledge a large split-APK install before all
         // /data/app extents reach the virtual disk. Stopping QEMU immediately

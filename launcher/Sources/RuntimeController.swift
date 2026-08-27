@@ -82,7 +82,7 @@ final class RuntimeController {
             "TFT_ROOT_SDK": paths.sdk.path,
             "TFT_ROOT_AVD_HOME": paths.avdHome.path,
             "TFT_AVD_HOME": paths.avdHome.path,
-            "TFT_AVD_NAME": "TftPBE",
+            "TFT_AVD_NAME": "Tft",
             "TFT_SERIAL": "emulator-5582",
             "TFT_EMULATOR_PORT": "5582",
             "TFT_ADB_SERVER_PORT": "5038",

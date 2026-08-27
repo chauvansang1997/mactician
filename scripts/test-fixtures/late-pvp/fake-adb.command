@@ -8,10 +8,10 @@ case "$joined" in
     *" get-state") print device ;;
     *" exec-out screencap -p") print -n 'fixture-png' ;;
     *" shell dumpsys activity activities"*)
-        print 'topResumedActivity=ActivityRecord{fixture com.riotgames.league.teamfighttactics.pbe/com.epicgames.unreal.GameActivity}'
+        print 'topResumedActivity=ActivityRecord{fixture com.riotgames.league.teamfighttactics/com.epicgames.unreal.GameActivity}'
         ;;
-    *" shell pidof com.riotgames.league.teamfighttactics.pbe") print 4242 ;;
-    *" shell sha256sum /data/user/0/com.riotgames.league.teamfighttactics.pbe/files/UnrealGame/TFT/TFT/Saved/Config/Android/DeviceProfiles.ini")
+    *" shell pidof com.riotgames.league.teamfighttactics") print 4242 ;;
+    *" shell sha256sum /data/user/0/com.riotgames.league.teamfighttactics/files/UnrealGame/TFT/TFT/Saved/Config/Android/DeviceProfiles.ini")
         readonly profile_sha_counter_path="${TFT_FAKE_ADB_LOG}.profile-sha-count"
         integer profile_sha_count=0
         [[ -f "$profile_sha_counter_path" ]] \
@@ -24,10 +24,10 @@ case "$joined" in
                 && [[ -n "${TFT_FAKE_ACTIVE_PROFILE_SHA256_AFTER_FIRST:-}" ]]; then
             profile_sha256="$TFT_FAKE_ACTIVE_PROFILE_SHA256_AFTER_FIRST"
         fi
-        print "$profile_sha256  /data/user/0/com.riotgames.league.teamfighttactics.pbe/files/UnrealGame/TFT/TFT/Saved/Config/Android/DeviceProfiles.ini"
+        print "$profile_sha256  /data/user/0/com.riotgames.league.teamfighttactics/files/UnrealGame/TFT/TFT/Saved/Config/Android/DeviceProfiles.ini"
         ;;
     *" shell cat /proc/4242/mountinfo")
-        print '100 99 0:1 / /data/user/0/com.riotgames.league.teamfighttactics.pbe/files/UnrealGame/TFT/TFT/Saved/Config/Android/DeviceProfiles.ini rw - tmpfs tmpfs rw'
+        print '100 99 0:1 / /data/user/0/com.riotgames.league.teamfighttactics/files/UnrealGame/TFT/TFT/Saved/Config/Android/DeviceProfiles.ini rw - tmpfs tmpfs rw'
         ;;
     *" shell simpleperf list sw") print 'cpu-clock' ;;
     *" shell getconf CLK_TCK") print 100 ;;
@@ -50,7 +50,7 @@ case "$joined" in
             print -u2 'fixture simpleperf children report failure'
             exit 74
         fi
-        print '12.00%  com.riotgames.league.teamfighttactics.pbe  4242  4243  writew'
+        print '12.00%  com.riotgames.league.teamfighttactics  4242  4243  writew'
         ;;
     *" pull /data/local/tmp/mactician-late-pvp-4242.data "*)
         if [[ "${TFT_FAKE_SIMPLEPERF_PULL_FAIL:-0}" == 1 ]]; then

@@ -144,7 +144,7 @@ struct LauncherView: View {
                     .fill(LauncherTheme.ColorToken.interactive)
                     .frame(width: 7, height: 7)
                     .accessibilityHidden(true)
-                Text(LauncherL10n.format("header.pbe_version_format", model.gameDisplayVersion))
+                Text(LauncherL10n.format("header.game_version_format", model.gameDisplayVersion))
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundColor(LauncherTheme.ColorToken.textPrimary)
             }

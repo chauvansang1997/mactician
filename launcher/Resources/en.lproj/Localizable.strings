@@ -1,10 +1,10 @@
-"header.subtitle" = "TFT PBE launcher for Apple Silicon";
-"header.pbe_version_format" = "PBE %@";
+"header.subtitle" = "TFT launcher for Apple Silicon";
+"header.game_version_format" = "TFT %@";
 "settings.open" = "Open Mactician settings";
-"about.descriptor" = "TFT PBE launcher for Apple Silicon";
+"about.descriptor" = "TFT launcher for Apple Silicon";
 
-"hero.eyebrow" = "MACTICIAN · TFT PBE LAUNCHER";
-"hero.title" = "Keep playing TFT PBE on your Mac.";
+"hero.eyebrow" = "MACTICIAN · TFT LAUNCHER";
+"hero.title" = "Keep playing TFT on your Mac.";
 "hero.description" = "Mactician prepares the environment, starts the game, and keeps your local setup in one place.";
 
 "footer.private_build" = "Free and open source";
@@ -13,7 +13,7 @@
 "footer.legal" = "TFT and Riot Games are property of their respective owners";
 
 "ready.title" = "Ready to play";
-"ready.description" = "TFT PBE is installed and ready.";
+"ready.description" = "TFT is installed and ready.";
 "ready.advanced_summary_format" = "%d%% · %d GB · %d vCPU";
 "ready.advanced_open" = "Open advanced settings";
 
@@ -54,8 +54,8 @@
 "action.ok" = "OK";
 
 "game_update.result.title" = "Game update";
-"game_update.updated.message" = "TFT PBE was updated to version %@ and is ready to play.";
-"game_update.current.message" = "No update is available. Installed TFT PBE version %@ already matches the hosted version.";
+"game_update.updated.message" = "TFT was updated to version %@ and is ready to play.";
+"game_update.current.message" = "No update is available. Installed TFT version %@ already matches the hosted version.";
 
 "telemetry.notice.title" = "Usage statistics and diagnostics";
 "telemetry.notice.body" = "Mactician sends one statistic after the first successful game launch: the launcher version and a rounded session-duration range. The event contains no persistent identifier or device characteristics.";
@@ -73,7 +73,7 @@
 "updates.check" = "Check for Updates…";
 
 "install.required.title" = "Installation required";
-"install.required.description" = "Install the verified Android environment and TFT PBE once.";
+"install.required.description" = "Install the verified Android environment and TFT once.";
 "install.cancelled.title" = "Installation stopped";
 "install.cancelled.description" = "Incomplete downloads are kept and can be resumed when you install again.";
 "install.requirement.download" = "Download";
@@ -88,20 +88,20 @@
 "install.license.terms" = "View Google terms";
 "install.license.hint" = "Accept the Android SDK license to enable installation.";
 
-"installing.title" = "Installing TFT PBE";
+"installing.title" = "Installing TFT";
 "installing.phase.checking" = "Checking your Mac and installation files…";
 "installing.phase.downloading" = "Downloading required components…";
 "installing.phase.extracting" = "Extracting and verifying files…";
 "installing.phase.creating_device" = "Creating the Android device…";
-"installing.phase.installing_game" = "Installing TFT PBE…";
+"installing.phase.installing_game" = "Installing TFT…";
 "installing.phase.finished" = "Installation complete";
 "installing.phase.paused" = "Download paused";
 
-"launching.title" = "Launching TFT PBE";
+"launching.title" = "Launching TFT";
 "playing.title" = "Game running";
-"playing.description_format" = "TFT PBE is open in %@.";
+"playing.description_format" = "TFT is open in %@.";
 "playing.fill_window_tip" = "Control + Fn + F fills the game window";
-"stopping.title" = "Stopping TFT PBE";
+"stopping.title" = "Stopping TFT";
 "stopping.description" = "Closing the emulator and restoring temporary settings…";
 
 "hotkeys.title" = "Game hotkeys";
@@ -116,7 +116,7 @@
 
 "settings.title" = "Mactician settings";
 "settings.description" = "Game, performance, hotkeys, and maintenance.";
-"settings.runtime_locked" = "Available after TFT PBE is stopped.";
+"settings.runtime_locked" = "Available after TFT is stopped.";
 "settings.game.title" = "Game";
 
 "settings.performance.title" = "Performance";
@@ -142,9 +142,9 @@
 
 "error.installation.title" = "Installation failed";
 "error.installation.summary" = "The required game environment could not be installed.";
-"error.launch.title" = "Couldn’t launch TFT PBE";
+"error.launch.title" = "Couldn’t launch TFT";
 "error.launch.summary" = "Mactician could not start the verified game environment.";
-"error.runtime.title" = "TFT PBE stopped unexpectedly";
+"error.runtime.title" = "TFT stopped unexpectedly";
 "error.runtime.summary" = "The game or emulator reported an unexpected runtime error.";
 "error.validation.title" = "Installation needs repair";
 "error.validation.summary" = "A verified component is missing, damaged, or does not match this Mactician build.";
