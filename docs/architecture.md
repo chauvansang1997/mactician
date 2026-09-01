@@ -148,6 +148,12 @@ delivery, captures the explicit granted/denied state and consent version, and
 retries the same payload and event UUID until a 2xx response. Versioned pending
 and completion keys are independent of first-session state.
 
+After the updated telemetry notice is acknowledged, launcher startup also
+creates at most one `daily_active` event for the current UTC day. A bounded
+eight-event queue preserves heartbeats across temporary failures, while a
+separate last-created-day marker prevents another event on the same day. Each
+day uses a fresh UUID, so the wire payload has no cross-day identifier.
+
 Every completed session also creates an independent `game_session_summary`
 containing only duration and launcher version/build. A bounded 64-event queue
 persists summaries across temporary failures regardless of Extended Diagnostics

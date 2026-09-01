@@ -1,11 +1,11 @@
 # Telemetry and privacy
 
-Mactician has minimized basic events, an anonymous duration-only summary for
-every completed session, and separately consented extended diagnostics. Event
-JSON has no stable installation or user identifier. The server retains transport
+Mactician has minimized basic events, an anonymous daily-active heartbeat, a
+duration-only summary for every completed session, and separately consented
+extended diagnostics. Event JSON has no stable installation or user identifier. The server retains transport
 source IPs for eligible first-session and snapshot events for 365 days, so those
 events are not unlinkable end-to-end. It does not retain the transport source IP
-or raw payload for session summaries. The minimized payload reduces privacy risk
+or raw payload for daily-active events or session summaries. The minimized payload reduces privacy risk
 but does not by itself determine consent requirements in every jurisdiction.
 
 ## Basic first-session event
@@ -80,6 +80,39 @@ unexpected `unknown` explicitly. Consent and refusal rates use only
 as refusal. The result is not a unique-person count: clearing preferences or
 using another macOS account can count again, while launchers that are not
 updated and run are absent.
+
+## Anonymous daily-active heartbeat
+
+After the current telemetry notice is acknowledged, Mactician creates at most
+one `daily_active` event per retained macOS preferences domain and UTC day on
+which the launcher opens:
+
+```json
+{
+  "schema_version": 2,
+  "event_id": "random-uuid",
+  "event": "daily_active",
+  "occurred_on": "2026-09-01",
+  "launcher_version": "1.1.2",
+  "launcher_build": "47"
+}
+```
+
+The payload has no stable installation or user identifier, duration, exact
+time, device properties, settings, language, account information, or logs. A
+fresh random event UUID is created for each active day, so payloads from
+different days cannot be joined into an installation history. The client stores
+the last created UTC day and queues at most eight undelivered heartbeats. A
+retry reuses the same UUID; another launcher start on the same day does not
+create another event.
+
+The server validates `occurred_on`, aggregates the event under that UTC day and
+launcher version/build, and stores neither its raw payload nor transport source
+IP. The private dashboard labels the result **Approximate DAU**. It approximates
+active preferences domains rather than unique people: separate macOS accounts
+or cleared preferences can count again, while old launcher versions and failed
+delivery can undercount. Event-ID hashes expire after 14 days and daily
+aggregates after 730 days.
 
 ## Anonymous game-session summary
 
@@ -162,11 +195,11 @@ consent.
 The API strictly rejects unknown fields and out-of-range values, bounds request
 size, and deduplicates by `event_id`. It retains normalized source IP records
 for eligible first-session and snapshot events for 365 days, does not retain
-them for session summaries, does not persist User-Agent headers, and never logs
-an invalid request body.
+them for daily-active events or session summaries, does not persist User-Agent
+headers, and never logs an invalid request body.
 
-Basic payloads and session summaries are not retained as raw events.
-First-session event-ID hashes expire after 14 days. Snapshot and summary hashes
+Basic payloads, daily-active events, and session summaries are not retained as
+raw events. First-session and daily-active event-ID hashes expire after 14 days. Snapshot and summary hashes
 and aggregates are retained for 730 days so delayed delivery of one event ID
 remains idempotent. Eligible source IP records are retained separately for 365
 days only for rate limiting and abuse investigation; they are never used to

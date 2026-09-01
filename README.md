@@ -224,6 +224,14 @@ and launcher version/build. It is sent regardless of that choice and carries no
 game-session diagnostics. The server keeps this new cumulative series separate
 from the earlier, known-undercounted first-session metric.
 
+After the updated telemetry notice is acknowledged, opening Mactician creates
+at most one `daily_active` event per retained preferences domain and UTC day.
+It contains only a fresh event UUID for that day, the UTC calendar day, and
+launcher version/build. The server immediately aggregates it by that calendar
+day without retaining the raw payload or source IP. The dashboard labels the
+result **Approximate DAU** because separate macOS accounts or cleared
+preferences can count again, while unavailable delivery can undercount.
+
 Every completed session sends an independent anonymous summary containing only
 a fresh event UUID, duration, and launcher version/build. It contains no date,
 exact start/end time, stable identifier, device properties, or settings. The

@@ -51,6 +51,7 @@ REQUIRED_FILES=(
     docs/troubleshooting.md
     docs/telemetry-contract/SHA256SUMS
     docs/telemetry-contract/activation-snapshot-v2.json
+    docs/telemetry-contract/daily-active-v2.json
     docs/telemetry-contract/first-game-session-v2.json
     docs/telemetry-contract/game-session-diagnostics-v2.json
     docs/telemetry-contract/game-session-summary-v2.json

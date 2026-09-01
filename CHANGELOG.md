@@ -4,6 +4,12 @@ The current application metadata is version 1.1.3, build 48.
 
 ## Unreleased
 
+### Changed
+
+- Add an approximate DAU metric backed by at most one unlinkable
+  `daily_active` event per retained preferences domain and UTC day. The event
+  contains no stable identifier, and the server does not retain its source IP.
+
 ## 1.1.3 — 2026-09-01
 
 ### Fixed

@@ -140,8 +140,10 @@ final class LauncherTelemetryService {
         static let firstSessionCompletedKey = "telemetry.firstSession.completed.v2"
         static let activationSnapshotPendingKey = "telemetry.activationSnapshot.pending.v1"
         static let activationSnapshotCompletedKey = "telemetry.activationSnapshot.completed.v1"
+        static let dailyActivePendingEventsKey = "telemetry.dailyActive.pendingEvents.v1"
+        static let dailyActiveLastCreatedDayKey = "telemetry.dailyActive.lastCreatedDay.v1"
         static let sessionSummaryPendingEventsKey = "telemetry.sessionSummary.pendingEvents.v2"
-        static let noticeShownKey = "telemetry.noticeShown.v2"
+        static let noticeShownKey = "telemetry.noticeShown.v3"
         static let extendedConsentStateKey = "telemetry.extendedConsent.state.v1"
         static let extendedConsentVersionKey = "telemetry.extendedConsent.version.v1"
         static let extendedPendingEventsKey = "telemetry.extended.pendingEvents.v2"
@@ -149,6 +151,7 @@ final class LauncherTelemetryService {
         static let legacyInstallationIDKey = "telemetry.installationID.v1"
         static let shownMessagesKey = "telemetry.shownMessages.v1"
         static let maxExtendedPendingEvents = 16
+        static let maxDailyActivePendingEvents = 8
         static let maxSessionSummaryPendingEvents = 64
         static let maxPendingBytes = 64 * 1024
         static let firstSessionLifetime: TimeInterval = 7 * 24 * 60 * 60
@@ -237,6 +240,24 @@ final class LauncherTelemetryService {
         }
     }
 
+    private struct DailyActiveEvent: Codable {
+        let schemaVersion: Int
+        let eventID: String
+        let event: String
+        let occurredOn: String
+        let launcherVersion: String
+        let launcherBuild: String
+
+        enum CodingKeys: String, CodingKey {
+            case schemaVersion = "schema_version"
+            case eventID = "event_id"
+            case event
+            case occurredOn = "occurred_on"
+            case launcherVersion = "launcher_version"
+            case launcherBuild = "launcher_build"
+        }
+    }
+
     private struct GameSessionSummaryEvent: Codable {
         let schemaVersion: Int
         let eventID: String
@@ -258,6 +279,7 @@ final class LauncherTelemetryService {
     private enum PendingEvent {
         case firstSession(PendingFirstSession)
         case activationSnapshot(ActivationSnapshotEvent)
+        case dailyActive(DailyActiveEvent)
         case sessionSummary(GameSessionSummaryEvent)
         case diagnostics(DiagnosticsEvent)
 
@@ -265,6 +287,7 @@ final class LauncherTelemetryService {
             switch self {
             case let .firstSession(pending): return pending.event.eventID
             case let .activationSnapshot(event): return event.eventID
+            case let .dailyActive(event): return event.eventID
             case let .sessionSummary(event): return event.eventID
             case let .diagnostics(event): return event.eventID
             }
@@ -331,6 +354,9 @@ final class LauncherTelemetryService {
         queue.async { [weak self] in
             guard let self else { return }
             self.createActivationSnapshotIfNeeded()
+            if !self.shouldShowNotice {
+                self.createDailyActiveIfNeeded(on: Date())
+            }
             _ = self.defaults.synchronize()
             self.flushNextEvent()
         }
@@ -351,6 +377,7 @@ final class LauncherTelemetryService {
             setConsentState(extendedDiagnostics ? .granted : .denied)
             defaults.set(true, forKey: Constant.noticeShownKey)
             createActivationSnapshotIfNeeded()
+            createDailyActiveIfNeeded(on: Date())
             _ = defaults.synchronize()
             flushNextEvent()
         }
@@ -475,6 +502,8 @@ final class LauncherTelemetryService {
             pending = .firstSession(firstSession)
         } else if let activationSnapshot = loadActivationSnapshot() {
             pending = .activationSnapshot(activationSnapshot)
+        } else if let dailyActive = loadDailyActiveEvents().first {
+            pending = .dailyActive(dailyActive)
         } else if let summary = loadSessionSummaryEvents().first {
             pending = .sessionSummary(summary)
         } else if isExtendedDiagnosticsEnabled {
@@ -489,6 +518,8 @@ final class LauncherTelemetryService {
         case let .firstSession(value):
             body = Self.eventEncoder.encodeOrNil(value.event)
         case let .activationSnapshot(value):
+            body = Self.eventEncoder.encodeOrNil(value)
+        case let .dailyActive(value):
             body = Self.eventEncoder.encodeOrNil(value)
         case let .sessionSummary(value):
             body = Self.eventEncoder.encodeOrNil(value)
@@ -600,6 +631,52 @@ final class LauncherTelemetryService {
         return event
     }
 
+    private func createDailyActiveIfNeeded(on date: Date) {
+        let day = Self.utcDay(for: date)
+        guard defaults.string(forKey: Constant.dailyActiveLastCreatedDayKey) != day else {
+            return
+        }
+        var events = loadDailyActiveEvents()
+        events.append(DailyActiveEvent(
+            schemaVersion: 2,
+            eventID: UUID().uuidString.lowercased(),
+            event: "daily_active",
+            occurredOn: day,
+            launcherVersion: launcherVersion,
+            launcherBuild: launcherBuild
+        ))
+        events = Array(events.suffix(Constant.maxDailyActivePendingEvents))
+        guard let data = Self.eventEncoder.encodeOrNil(events),
+              data.count <= Constant.maxPendingBytes else {
+            return
+        }
+        defaults.set(data, forKey: Constant.dailyActivePendingEventsKey)
+        defaults.set(day, forKey: Constant.dailyActiveLastCreatedDayKey)
+    }
+
+    private func loadDailyActiveEvents() -> [DailyActiveEvent] {
+        guard let data = defaults.data(forKey: Constant.dailyActivePendingEventsKey),
+              data.count <= Constant.maxPendingBytes,
+              let events = try? Self.eventDecoder.decode([DailyActiveEvent].self, from: data) else {
+            defaults.removeObject(forKey: Constant.dailyActivePendingEventsKey)
+            return []
+        }
+        return Array(events.suffix(Constant.maxDailyActivePendingEvents))
+    }
+
+    private func saveDailyActiveEvents(_ events: [DailyActiveEvent]) {
+        guard !events.isEmpty else {
+            defaults.removeObject(forKey: Constant.dailyActivePendingEventsKey)
+            return
+        }
+        guard let data = Self.eventEncoder.encodeOrNil(events),
+              data.count <= Constant.maxPendingBytes else {
+            defaults.removeObject(forKey: Constant.dailyActivePendingEventsKey)
+            return
+        }
+        defaults.set(data, forKey: Constant.dailyActivePendingEventsKey)
+    }
+
     private func loadDiagnosticsEvents() -> [DiagnosticsEvent] {
         guard isExtendedDiagnosticsEnabled,
               let data = defaults.data(forKey: Constant.extendedPendingEventsKey),
@@ -658,6 +735,8 @@ final class LauncherTelemetryService {
         case .activationSnapshot:
             defaults.set(true, forKey: Constant.activationSnapshotCompletedKey)
             defaults.removeObject(forKey: Constant.activationSnapshotPendingKey)
+        case .dailyActive:
+            removePendingEvent(pending)
         case .sessionSummary:
             removePendingEvent(pending)
         case .diagnostics:
@@ -678,6 +757,10 @@ final class LauncherTelemetryService {
             defaults.removeObject(forKey: Constant.firstSessionPendingKey)
         case .activationSnapshot:
             defaults.removeObject(forKey: Constant.activationSnapshotPendingKey)
+        case .dailyActive:
+            saveDailyActiveEvents(
+                loadDailyActiveEvents().filter { $0.eventID != pending.eventID }
+            )
         case .sessionSummary:
             saveSessionSummaryEvents(
                 loadSessionSummaryEvents().filter { $0.eventID != pending.eventID }

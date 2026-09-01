@@ -58,7 +58,7 @@
 "game_update.current.message" = "No update is available. Installed TFT version %@ already matches the hosted version.";
 
 "telemetry.notice.title" = "Usage statistics and diagnostics";
-"telemetry.notice.body" = "After every completed game session, Mactician sends an anonymous summary containing only its duration and the launcher version. It has no persistent identifier, device characteristics, settings, or exact time. Choose whether to also send extended diagnostics with Mac characteristics, launcher settings, and the exact session completion time.";
+"telemetry.notice.body" = "When opened, Mactician sends at most one anonymous daily-activity heartbeat per UTC day. After every completed game session, it also sends a duration-only summary. Neither event has a persistent identifier, device characteristics, settings, or exact time. Choose whether to also send extended diagnostics with Mac characteristics, launcher settings, and the exact session completion time.";
 "telemetry.extended.toggle" = "Also send extended diagnostics: Mac characteristics, launcher settings, and exact session completion time.";
 "telemetry.extended.data_link" = "Data sent";
 "telemetry.privacy_policy" = "Privacy Policy";
@@ -66,7 +66,7 @@
 "telemetry.send" = "Send";
 "telemetry.settings.title" = "Privacy and diagnostics";
 "telemetry.settings.description" = "Extended diagnostics are optional and do not affect launcher functionality.";
-"telemetry.settings.basic_note" = "Every completed session sends an unlinkable summary with only its duration and launcher version. Extended Diagnostics are separate and optional.";
+"telemetry.settings.basic_note" = "Each active UTC day sends one unlinkable heartbeat; every completed session sends a duration-only summary. Extended Diagnostics are separate and optional.";
 
 "updates.title" = "Mactician Updates";
 "updates.description" = "Updates are verified, installed atomically, and never remove Android or Riot data.";

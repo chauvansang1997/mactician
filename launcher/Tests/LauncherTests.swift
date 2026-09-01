@@ -202,11 +202,87 @@ enum LauncherTests {
                 && LauncherTelemetryDevice.normalizedModelIdentifier("Mac name") == "unknown",
             "telemetry device model identifier is bounded"
         )
+        let currentUTCDay = String(ISO8601DateFormatter().string(from: Date()).prefix(10))
+
+        let dailyDefaultsName = "LauncherTests.daily-active.\(UUID().uuidString)"
+        guard let dailyDefaults = UserDefaults(suiteName: dailyDefaultsName) else {
+            throw TestFailure("daily-active UserDefaults suite")
+        }
+        defer { dailyDefaults.removePersistentDomain(forName: dailyDefaultsName) }
+        dailyDefaults.set(true, forKey: "telemetry.noticeShown.v3")
+        dailyDefaults.set("denied", forKey: "telemetry.extendedConsent.state.v1")
+        dailyDefaults.set(1, forKey: "telemetry.extendedConsent.version.v1")
+        dailyDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
+        dailyDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
+        let dailyLoader = TelemetryLoaderStub()
+        let dailyService = LauncherTelemetryService(
+            defaults: dailyDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: dailyLoader.load
+        )
+        try waitFor("daily-active request") { dailyLoader.requestCount == 1 }
+        guard let dailyEvent = dailyLoader.event(at: 0),
+              let dailyEventID = dailyEvent["event_id"] as? String,
+              let activeDay = dailyEvent["occurred_on"] as? String else {
+            throw TestFailure("daily-active payload")
+        }
+        try expect(
+            dailyEvent["event"] as? String == "daily_active"
+                && activeDay.range(
+                    of: #"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"#,
+                    options: .regularExpression
+                ) != nil
+                && Set(dailyEvent.keys) == Set([
+                    "schema_version", "event_id", "event", "occurred_on",
+                    "launcher_version", "launcher_build"
+                ])
+                && dailyDefaults.string(
+                    forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+                ) == activeDay,
+            "daily-active payload is unlinkable and created once per UTC day"
+        )
+        dailyLoader.completeFirst(statusCode: 503)
+        withExtendedLifetime(dailyService) {}
+        let dailyRetryLoader = TelemetryLoaderStub()
+        let dailyRetryService = LauncherTelemetryService(
+            defaults: dailyDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: dailyRetryLoader.load
+        )
+        try waitFor("daily-active retry") { dailyRetryLoader.requestCount == 1 }
+        try expect(
+            dailyRetryLoader.event(at: 0)?["event_id"] as? String == dailyEventID,
+            "daily-active retry preserves its event ID"
+        )
+        dailyRetryLoader.completeFirst(statusCode: 202)
+        try waitFor("daily-active completion") {
+            dailyDefaults.data(forKey: "telemetry.dailyActive.pendingEvents.v1") == nil
+        }
+        withExtendedLifetime(dailyRetryService) {}
+        let sameDayLoader = TelemetryLoaderStub()
+        let sameDayService = LauncherTelemetryService(
+            defaults: dailyDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: sameDayLoader.load
+        )
+        sameDayService.completeNotice(extendedDiagnostics: false)
+        try expect(
+            sameDayLoader.requestCount == 0,
+            "daily-active event is not recreated on the same UTC day"
+        )
+
         let telemetryDefaultsName = "LauncherTests.telemetry.\(UUID().uuidString)"
         guard let telemetryDefaults = UserDefaults(suiteName: telemetryDefaultsName) else {
             throw TestFailure("telemetry UserDefaults suite")
         }
         defer { telemetryDefaults.removePersistentDomain(forName: telemetryDefaultsName) }
+        telemetryDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         telemetryDefaults.set(UUID().uuidString, forKey: "telemetry.installationID.v1")
         telemetryDefaults.set(Data("[]".utf8), forKey: "telemetry.pendingEvents.v1")
         telemetryDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
@@ -346,6 +422,10 @@ enum LauncherTests {
             throw TestFailure("upgraded telemetry UserDefaults suite")
         }
         defer { upgradedDefaults.removePersistentDomain(forName: upgradedDefaultsName) }
+        upgradedDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         upgradedDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
         let upgradedLoader = TelemetryLoaderStub()
         let upgradedService = LauncherTelemetryService(
@@ -466,6 +546,10 @@ enum LauncherTests {
             throw TestFailure("granted snapshot UserDefaults suite")
         }
         defer { grantedDefaults.removePersistentDomain(forName: grantedDefaultsName) }
+        grantedDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         grantedDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
         grantedDefaults.set("granted", forKey: "telemetry.extendedConsent.state.v1")
         grantedDefaults.set(1, forKey: "telemetry.extendedConsent.version.v1")
@@ -494,6 +578,10 @@ enum LauncherTests {
             throw TestFailure("diagnostics UserDefaults suite")
         }
         defer { diagnosticsDefaults.removePersistentDomain(forName: diagnosticsDefaultsName) }
+        diagnosticsDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         diagnosticsDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
         diagnosticsDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let diagnosticsService = LauncherTelemetryService(
@@ -550,6 +638,10 @@ enum LauncherTests {
             throw TestFailure("old consent UserDefaults suite")
         }
         defer { oldConsentDefaults.removePersistentDomain(forName: oldConsentDefaultsName) }
+        oldConsentDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         oldConsentDefaults.set("granted", forKey: "telemetry.extendedConsent.state.v1")
         oldConsentDefaults.set(0, forKey: "telemetry.extendedConsent.version.v1")
         oldConsentDefaults.set(true, forKey: "telemetry.noticeShown.v2")
@@ -571,6 +663,10 @@ enum LauncherTests {
             throw TestFailure("duplicate UserDefaults suite")
         }
         defer { duplicateDefaults.removePersistentDomain(forName: duplicateDefaultsName) }
+        duplicateDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         let duplicateLoader = TelemetryLoaderStub()
         duplicateDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let duplicateService = LauncherTelemetryService(
@@ -595,6 +691,10 @@ enum LauncherTests {
             throw TestFailure("stale UserDefaults suite")
         }
         defer { staleDefaults.removePersistentDomain(forName: staleDefaultsName) }
+        staleDefaults.set(
+            currentUTCDay,
+            forKey: "telemetry.dailyActive.lastCreatedDay.v1"
+        )
         let staleLoader = TelemetryLoaderStub()
         staleDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let staleService = LauncherTelemetryService(
