@@ -28,8 +28,8 @@ state.
   animations through a temporary loopback-only DevTools forward. It does not
   read or modify field values.
 - `LauncherUpdateController.swift` exposes Sparkle's update UI.
-- `LauncherTelemetryService.swift` owns the bounded retry queue, anonymous
-  launch/session events, strict message responses, and safe image decoding.
+- `LauncherTelemetryService.swift` owns the bounded retry queues, minimized
+  activation/session events, strict message responses, and safe image decoding.
 - `LauncherAnnouncementView.swift` renders server-selected messages without
   HTML or executable content.
 - `EmulatorHost/main.c` is a minimal app-bundle host for Google's Emulator, used
@@ -137,9 +137,22 @@ current identifiers are `dev.sergeinaumov.mactician`,
 
 A game session begins only on the runtime `ready` event and ends once on
 `game_stopped`, `stopped`, or application shutdown. Its first completion creates
-one unlinkable `first_game_session` event. The event is synchronously persisted
+one minimized `first_game_session` event. The event is synchronously persisted
 before the request, retried with the same event UUID, and terminally completed
 after success, duplicate acknowledgement, unrecoverable 4xx, or seven days.
+
+The launcher version that starts the fresh census creates one independent
+`activation_snapshot` for snapshot version 1 on startup when consent is already
+known, or immediately after an `unknown` user chooses. It is persisted before
+delivery, captures the explicit granted/denied state and consent version, and
+retries the same payload and event UUID until a 2xx response. Versioned pending
+and completion keys are independent of first-session state.
+
+Every completed session also creates an independent `game_session_summary`
+containing only duration and launcher version/build. A bounded 64-event queue
+persists summaries across temporary failures regardless of Extended Diagnostics
+consent. Each summary uses a fresh event UUID and contains no occurrence time,
+settings, device properties, or stable identifier.
 
 An independent, bounded queue stores `game_session_diagnostics` only while
 consent version 1 is granted. Revocation synchronously removes that queue before

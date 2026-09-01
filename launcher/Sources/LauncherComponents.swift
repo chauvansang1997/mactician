@@ -308,6 +308,54 @@ struct LauncherPrimaryButtonStyle: ButtonStyle {
     }
 }
 
+struct LauncherOutlineButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 15, weight: .bold))
+            .foregroundColor(
+                isEnabled
+                    ? LauncherTheme.ColorToken.textPrimary
+                    : LauncherTheme.ColorToken.textTertiary
+            )
+            .padding(.horizontal, LauncherTheme.Spacing.large)
+            .frame(minHeight: LauncherTheme.Metric.primaryControlHeight)
+            .background(
+                RoundedRectangle(
+                    cornerRadius: LauncherTheme.Metric.controlRadius,
+                    style: .continuous
+                )
+                .fill(LauncherTheme.ColorToken.surface)
+            )
+            .overlay(
+                RoundedRectangle(
+                    cornerRadius: LauncherTheme.Metric.controlRadius,
+                    style: .continuous
+                )
+                .stroke(
+                    Color.white.opacity(
+                        isEnabled
+                            ? (configuration.isPressed ? 0.36 : isHovered ? 0.25 : 0.13)
+                            : 0.08
+                    ),
+                    lineWidth: 1.5
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: LauncherTheme.Metric.controlRadius + 2)
+                    .stroke(
+                        isFocused ? LauncherTheme.ColorToken.interactive : .clear,
+                        lineWidth: 2
+                    )
+                    .padding(-3)
+            )
+            .onHover { isHovered = $0 }
+    }
+}
+
 struct LauncherSecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.isFocused) private var isFocused

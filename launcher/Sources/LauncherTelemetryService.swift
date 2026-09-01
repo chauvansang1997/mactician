@@ -132,12 +132,16 @@ final class LauncherTelemetryService {
     ) -> Void
 
     static let currentConsentVersion = 1
+    static let currentSnapshotVersion = 1
 
     private enum Constant {
         static let apiBaseURL = URL(string: "https://sergeinaumov.dev/mactician/api/")!
         static let firstSessionPendingKey = "telemetry.firstSession.pending.v2"
         static let firstSessionCompletedKey = "telemetry.firstSession.completed.v2"
-        static let noticeShownKey = "telemetry.noticeShown.v1"
+        static let activationSnapshotPendingKey = "telemetry.activationSnapshot.pending.v1"
+        static let activationSnapshotCompletedKey = "telemetry.activationSnapshot.completed.v1"
+        static let sessionSummaryPendingEventsKey = "telemetry.sessionSummary.pendingEvents.v2"
+        static let noticeShownKey = "telemetry.noticeShown.v2"
         static let extendedConsentStateKey = "telemetry.extendedConsent.state.v1"
         static let extendedConsentVersionKey = "telemetry.extendedConsent.version.v1"
         static let extendedPendingEventsKey = "telemetry.extended.pendingEvents.v2"
@@ -145,6 +149,7 @@ final class LauncherTelemetryService {
         static let legacyInstallationIDKey = "telemetry.installationID.v1"
         static let shownMessagesKey = "telemetry.shownMessages.v1"
         static let maxExtendedPendingEvents = 16
+        static let maxSessionSummaryPendingEvents = 64
         static let maxPendingBytes = 64 * 1024
         static let firstSessionLifetime: TimeInterval = 7 * 24 * 60 * 60
         static let maxShownMessages = 128
@@ -184,6 +189,28 @@ final class LauncherTelemetryService {
         }
     }
 
+    private struct ActivationSnapshotEvent: Codable {
+        let schemaVersion: Int
+        let eventID: String
+        let event: String
+        let snapshotVersion: Int
+        let diagnosticsConsentState: String
+        let diagnosticsConsentVersion: Int
+        let launcherVersion: String
+        let launcherBuild: String
+
+        enum CodingKeys: String, CodingKey {
+            case schemaVersion = "schema_version"
+            case eventID = "event_id"
+            case event
+            case snapshotVersion = "snapshot_version"
+            case diagnosticsConsentState = "diagnostics_consent_state"
+            case diagnosticsConsentVersion = "diagnostics_consent_version"
+            case launcherVersion = "launcher_version"
+            case launcherBuild = "launcher_build"
+        }
+    }
+
     private struct DiagnosticsEvent: Codable {
         let schemaVersion: Int
         let eventID: String
@@ -210,13 +237,35 @@ final class LauncherTelemetryService {
         }
     }
 
+    private struct GameSessionSummaryEvent: Codable {
+        let schemaVersion: Int
+        let eventID: String
+        let event: String
+        let durationSeconds: Int64
+        let launcherVersion: String
+        let launcherBuild: String
+
+        enum CodingKeys: String, CodingKey {
+            case schemaVersion = "schema_version"
+            case eventID = "event_id"
+            case event
+            case durationSeconds = "duration_seconds"
+            case launcherVersion = "launcher_version"
+            case launcherBuild = "launcher_build"
+        }
+    }
+
     private enum PendingEvent {
         case firstSession(PendingFirstSession)
+        case activationSnapshot(ActivationSnapshotEvent)
+        case sessionSummary(GameSessionSummaryEvent)
         case diagnostics(DiagnosticsEvent)
 
         var eventID: String {
             switch self {
             case let .firstSession(pending): return pending.event.eventID
+            case let .activationSnapshot(event): return event.eventID
+            case let .sessionSummary(event): return event.eventID
             case let .diagnostics(event): return event.eventID
             }
         }
@@ -279,7 +328,12 @@ final class LauncherTelemetryService {
         migrateLegacyTelemetry()
         enforceConsentVersion()
         discardExpiredFirstSession(now: Date())
-        queue.async { [weak self] in self?.flushNextEvent() }
+        queue.async { [weak self] in
+            guard let self else { return }
+            self.createActivationSnapshotIfNeeded()
+            _ = self.defaults.synchronize()
+            self.flushNextEvent()
+        }
     }
 
     var shouldShowNotice: Bool {
@@ -296,6 +350,7 @@ final class LauncherTelemetryService {
         queue.sync {
             setConsentState(extendedDiagnostics ? .granted : .denied)
             defaults.set(true, forKey: Constant.noticeShownKey)
+            createActivationSnapshotIfNeeded()
             _ = defaults.synchronize()
             flushNextEvent()
         }
@@ -304,6 +359,7 @@ final class LauncherTelemetryService {
     func setExtendedDiagnosticsEnabled(_ enabled: Bool) {
         queue.sync {
             setConsentState(enabled ? .granted : .denied)
+            createActivationSnapshotIfNeeded()
             _ = defaults.synchronize()
             flushNextEvent()
         }
@@ -317,6 +373,18 @@ final class LauncherTelemetryService {
         let duration = max(1, durationSeconds)
         queue.sync {
             createFirstSessionIfNeeded(durationSeconds: duration, endedAt: endedAt)
+            var summaries = loadSessionSummaryEvents()
+            summaries.append(GameSessionSummaryEvent(
+                schemaVersion: 2,
+                eventID: UUID().uuidString.lowercased(),
+                event: "game_session_summary",
+                durationSeconds: duration,
+                launcherVersion: launcherVersion,
+                launcherBuild: launcherBuild
+            ))
+            saveSessionSummaryEvents(
+                Array(summaries.suffix(Constant.maxSessionSummaryPendingEvents))
+            )
             if isExtendedDiagnosticsEnabled {
                 var events = loadDiagnosticsEvents()
                 events.append(DiagnosticsEvent(
@@ -405,6 +473,10 @@ final class LauncherTelemetryService {
         let pending: PendingEvent?
         if let firstSession = loadFirstSession() {
             pending = .firstSession(firstSession)
+        } else if let activationSnapshot = loadActivationSnapshot() {
+            pending = .activationSnapshot(activationSnapshot)
+        } else if let summary = loadSessionSummaryEvents().first {
+            pending = .sessionSummary(summary)
         } else if isExtendedDiagnosticsEnabled {
             pending = loadDiagnosticsEvents().first.map(PendingEvent.diagnostics)
         } else {
@@ -416,11 +488,16 @@ final class LauncherTelemetryService {
         switch pending {
         case let .firstSession(value):
             body = Self.eventEncoder.encodeOrNil(value.event)
+        case let .activationSnapshot(value):
+            body = Self.eventEncoder.encodeOrNil(value)
+        case let .sessionSummary(value):
+            body = Self.eventEncoder.encodeOrNil(value)
         case let .diagnostics(value):
             body = Self.eventEncoder.encodeOrNil(value)
         }
         guard let url = URL(string: "v1/events", relativeTo: apiBaseURL)?.absoluteURL,
               let body else {
+            if case .activationSnapshot = pending { return }
             removePendingEvent(pending)
             flushNextEvent()
             return
@@ -437,7 +514,11 @@ final class LauncherTelemetryService {
                 self.isFlushing = false
                 guard case let .success((_, response)) = result else { return }
                 let status = response.statusCode
-                if (200..<300).contains(status) || status == 409 {
+                if (200..<300).contains(status) {
+                    self.completePendingEvent(pending)
+                } else if case .activationSnapshot = pending {
+                    return
+                } else if status == 409 {
                     self.completePendingEvent(pending)
                 } else if (400..<500).contains(status), status != 408, status != 429 {
                     self.terminatePendingEvent(pending)
@@ -486,6 +567,39 @@ final class LauncherTelemetryService {
         return pending
     }
 
+    private func createActivationSnapshotIfNeeded() {
+        guard !defaults.bool(forKey: Constant.activationSnapshotCompletedKey),
+              loadActivationSnapshot() == nil,
+              consentState == .granted || consentState == .denied else {
+            return
+        }
+        let event = ActivationSnapshotEvent(
+            schemaVersion: 2,
+            eventID: UUID().uuidString.lowercased(),
+            event: "activation_snapshot",
+            snapshotVersion: Self.currentSnapshotVersion,
+            diagnosticsConsentState: consentState.rawValue,
+            diagnosticsConsentVersion: Self.currentConsentVersion,
+            launcherVersion: launcherVersion,
+            launcherBuild: launcherBuild
+        )
+        guard let data = Self.eventEncoder.encodeOrNil(event),
+              data.count <= Constant.maxPendingBytes else {
+            return
+        }
+        defaults.set(data, forKey: Constant.activationSnapshotPendingKey)
+    }
+
+    private func loadActivationSnapshot() -> ActivationSnapshotEvent? {
+        guard let data = defaults.data(forKey: Constant.activationSnapshotPendingKey),
+              data.count <= Constant.maxPendingBytes,
+              let event = try? Self.eventDecoder.decode(ActivationSnapshotEvent.self, from: data) else {
+            defaults.removeObject(forKey: Constant.activationSnapshotPendingKey)
+            return nil
+        }
+        return event
+    }
+
     private func loadDiagnosticsEvents() -> [DiagnosticsEvent] {
         guard isExtendedDiagnosticsEnabled,
               let data = defaults.data(forKey: Constant.extendedPendingEventsKey),
@@ -495,6 +609,32 @@ final class LauncherTelemetryService {
             return []
         }
         return Array(events.suffix(Constant.maxExtendedPendingEvents))
+    }
+
+    private func loadSessionSummaryEvents() -> [GameSessionSummaryEvent] {
+        guard let data = defaults.data(forKey: Constant.sessionSummaryPendingEventsKey),
+              data.count <= Constant.maxPendingBytes,
+              let events = try? Self.eventDecoder.decode(
+                [GameSessionSummaryEvent].self,
+                from: data
+              ) else {
+            defaults.removeObject(forKey: Constant.sessionSummaryPendingEventsKey)
+            return []
+        }
+        return Array(events.suffix(Constant.maxSessionSummaryPendingEvents))
+    }
+
+    private func saveSessionSummaryEvents(_ events: [GameSessionSummaryEvent]) {
+        guard !events.isEmpty else {
+            defaults.removeObject(forKey: Constant.sessionSummaryPendingEventsKey)
+            return
+        }
+        guard let data = Self.eventEncoder.encodeOrNil(events),
+              data.count <= Constant.maxPendingBytes else {
+            defaults.removeObject(forKey: Constant.sessionSummaryPendingEventsKey)
+            return
+        }
+        defaults.set(data, forKey: Constant.sessionSummaryPendingEventsKey)
     }
 
     private func saveDiagnosticsEvents(_ events: [DiagnosticsEvent]) {
@@ -515,6 +655,11 @@ final class LauncherTelemetryService {
         case .firstSession:
             defaults.set(true, forKey: Constant.firstSessionCompletedKey)
             defaults.removeObject(forKey: Constant.firstSessionPendingKey)
+        case .activationSnapshot:
+            defaults.set(true, forKey: Constant.activationSnapshotCompletedKey)
+            defaults.removeObject(forKey: Constant.activationSnapshotPendingKey)
+        case .sessionSummary:
+            removePendingEvent(pending)
         case .diagnostics:
             removePendingEvent(pending)
         }
@@ -531,6 +676,12 @@ final class LauncherTelemetryService {
         switch pending {
         case .firstSession:
             defaults.removeObject(forKey: Constant.firstSessionPendingKey)
+        case .activationSnapshot:
+            defaults.removeObject(forKey: Constant.activationSnapshotPendingKey)
+        case .sessionSummary:
+            saveSessionSummaryEvents(
+                loadSessionSummaryEvents().filter { $0.eventID != pending.eventID }
+            )
         case .diagnostics:
             saveDiagnosticsEvents(
                 loadDiagnosticsEvents().filter { $0.eventID != pending.eventID }
@@ -560,6 +711,15 @@ final class LauncherTelemetryService {
             defaults.removeObject(forKey: Constant.extendedConsentVersionKey)
             defaults.removeObject(forKey: Constant.noticeShownKey)
         }
+        if consentState == .denied,
+           defaults.integer(forKey: Constant.extendedConsentVersionKey)
+            != Self.currentConsentVersion {
+            defaults.set(Self.currentConsentVersion, forKey: Constant.extendedConsentVersionKey)
+        }
+        if consentState == .unknown {
+            defaults.removeObject(forKey: Constant.extendedConsentVersionKey)
+            defaults.removeObject(forKey: Constant.noticeShownKey)
+        }
         if consentState != .granted {
             defaults.removeObject(forKey: Constant.extendedPendingEventsKey)
         }
@@ -567,13 +727,15 @@ final class LauncherTelemetryService {
 
     private func setConsentState(_ state: LauncherTelemetryConsentState) {
         defaults.set(state.rawValue, forKey: Constant.extendedConsentStateKey)
-        if state == .granted {
+        if state == .granted || state == .denied {
             defaults.set(
                 Self.currentConsentVersion,
                 forKey: Constant.extendedConsentVersionKey
             )
         } else {
             defaults.removeObject(forKey: Constant.extendedConsentVersionKey)
+        }
+        if state != .granted {
             defaults.removeObject(forKey: Constant.extendedPendingEventsKey)
         }
     }

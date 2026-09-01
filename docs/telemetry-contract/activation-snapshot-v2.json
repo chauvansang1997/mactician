@@ -1,0 +1,10 @@
+{
+  "schema_version": 2,
+  "event_id": "123e4567-e89b-42d3-a456-426614174002",
+  "event": "activation_snapshot",
+  "snapshot_version": 1,
+  "diagnostics_consent_state": "denied",
+  "diagnostics_consent_version": 1,
+  "launcher_version": "1.1.0",
+  "launcher_build": "45"
+}

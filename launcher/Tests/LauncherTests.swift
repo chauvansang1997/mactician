@@ -209,6 +209,7 @@ enum LauncherTests {
         defer { telemetryDefaults.removePersistentDomain(forName: telemetryDefaultsName) }
         telemetryDefaults.set(UUID().uuidString, forKey: "telemetry.installationID.v1")
         telemetryDefaults.set(Data("[]".utf8), forKey: "telemetry.pendingEvents.v1")
+        telemetryDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let telemetryLoader = TelemetryLoaderStub()
         let telemetryService = LauncherTelemetryService(
             defaults: telemetryDefaults,
@@ -238,6 +239,14 @@ enum LauncherTests {
               let firstEventID = pendingEvent["event_id"] as? String else {
             throw TestFailure("first-session telemetry payload")
         }
+        guard let summaryData = telemetryDefaults.data(
+                forKey: "telemetry.sessionSummary.pendingEvents.v2"
+              ),
+              let summaryEvents = try JSONSerialization.jsonObject(with: summaryData)
+                as? [[String: Any]],
+              let summaryEvent = summaryEvents.first else {
+            throw TestFailure("anonymous session-summary payload")
+        }
         try expect(
             (pendingEvent["schema_version"] as? NSNumber)?.intValue == 2
                 && pendingEvent["event"] as? String == "first_game_session"
@@ -248,7 +257,18 @@ enum LauncherTests {
                     "duration_bucket", "launcher_version", "launcher_build"
                 ])
                 && telemetryDefaults.data(forKey: "telemetry.extended.pendingEvents.v2") == nil,
-            "first-session telemetry is unlinkable and contains only allowed fields"
+            "first-session telemetry is minimized and contains only allowed fields"
+        )
+        try expect(
+            summaryEvents.count == 1
+                && (summaryEvent["schema_version"] as? NSNumber)?.intValue == 2
+                && summaryEvent["event"] as? String == "game_session_summary"
+                && (summaryEvent["duration_seconds"] as? NSNumber)?.int64Value == 90
+                && Set(summaryEvent.keys) == Set([
+                    "schema_version", "event_id", "event", "duration_seconds",
+                    "launcher_version", "launcher_build"
+                ]),
+            "every session creates an unlinkable duration-only summary"
         )
         telemetryService.recordGameSession(
             durationSeconds: 3_700,
@@ -265,6 +285,20 @@ enum LauncherTests {
         try expect(
             repeatedEvent["event_id"] as? String == firstEventID,
             "later sessions reuse the single pending first-session event"
+        )
+        guard let repeatedSummaryData = telemetryDefaults.data(
+                forKey: "telemetry.sessionSummary.pendingEvents.v2"
+              ),
+              let repeatedSummaries = try JSONSerialization.jsonObject(
+                with: repeatedSummaryData
+              ) as? [[String: Any]] else {
+            throw TestFailure("repeated anonymous session-summary payload")
+        }
+        try expect(
+            repeatedSummaries.compactMap {
+                ($0["duration_seconds"] as? NSNumber)?.int64Value
+            } == [90, 3_700],
+            "every completed session is queued independently of diagnostics consent"
         )
         try expect(
             LauncherTelemetryService.durationBucket(for: 299) == "under_5m"
@@ -293,15 +327,167 @@ enum LauncherTests {
             telemetryDefaults.bool(forKey: "telemetry.firstSession.completed.v2")
                 && telemetryDefaults.data(forKey: "telemetry.firstSession.pending.v2") == nil
         }
+        try waitFor("anonymous session summary after first-session completion") {
+            retryLoader.requestCount == 2
+        }
         retryService.recordGameSession(
             durationSeconds: 180,
             launcherSettings: telemetrySettings
         )
         try expect(
-            retryLoader.requestCount == 1
+            retryLoader.requestCount == 2
+                && retryLoader.event(at: 1)?["event"] as? String == "game_session_summary"
                 && telemetryDefaults.data(forKey: "telemetry.firstSession.pending.v2") == nil,
-            "completed first-session telemetry is never recreated"
+            "completed one-time telemetry is not recreated while session summaries continue"
         )
+
+        let upgradedDefaultsName = "LauncherTests.upgradedTelemetry.\(UUID().uuidString)"
+        guard let upgradedDefaults = UserDefaults(suiteName: upgradedDefaultsName) else {
+            throw TestFailure("upgraded telemetry UserDefaults suite")
+        }
+        defer { upgradedDefaults.removePersistentDomain(forName: upgradedDefaultsName) }
+        upgradedDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
+        let upgradedLoader = TelemetryLoaderStub()
+        let upgradedService = LauncherTelemetryService(
+            defaults: upgradedDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: upgradedLoader.load
+        )
+        upgradedService.recordGameSession(
+            durationSeconds: 180,
+            launcherSettings: telemetrySettings,
+            endedAt: gameSessionStart.addingTimeInterval(180)
+        )
+        try waitFor("anonymous summary with unknown diagnostics consent") {
+            upgradedLoader.requestCount == 1
+        }
+        try expect(
+            upgradedLoader.event(at: 0)?["event"] as? String == "game_session_summary"
+                && (upgradedLoader.event(at: 0)?["duration_seconds"] as? NSNumber)?.int64Value
+                    == 180
+                && upgradedDefaults.data(forKey: "telemetry.activationSnapshot.pending.v1") == nil,
+            "unknown consent allows only the anonymous summary, not an activation snapshot"
+        )
+        upgradedLoader.completeFirst(statusCode: 202)
+        try waitFor("anonymous summary completion") {
+            upgradedDefaults.data(forKey: "telemetry.sessionSummary.pendingEvents.v2") == nil
+        }
+        upgradedService.completeNotice(extendedDiagnostics: false)
+        try waitFor("activation snapshot after explicit choice") {
+            upgradedLoader.requestCount == 2
+        }
+        guard let deniedSnapshot = upgradedLoader.event(at: 1),
+              let deniedSnapshotID = deniedSnapshot["event_id"] as? String else {
+            throw TestFailure("denied activation snapshot payload")
+        }
+        try expect(
+            (deniedSnapshot["schema_version"] as? NSNumber)?.intValue == 2
+                && deniedSnapshot["event"] as? String == "activation_snapshot"
+                && (deniedSnapshot["snapshot_version"] as? NSNumber)?.intValue == 1
+                && deniedSnapshot["diagnostics_consent_state"] as? String == "denied"
+                && (deniedSnapshot["diagnostics_consent_version"] as? NSNumber)?.intValue == 1
+                && Set(deniedSnapshot.keys) == Set([
+                    "schema_version", "event_id", "event", "snapshot_version",
+                    "diagnostics_consent_state", "diagnostics_consent_version",
+                    "launcher_version", "launcher_build"
+                ]),
+            "activation snapshot contains only versioned explicit consent state"
+        )
+        upgradedLoader.completeFirst(statusCode: 400)
+        try waitFor("snapshot retained after non-2xx") {
+            upgradedDefaults.data(forKey: "telemetry.activationSnapshot.pending.v1") != nil
+                && !upgradedDefaults.bool(forKey: "telemetry.activationSnapshot.completed.v1")
+        }
+        let upgradedRetryLoader = TelemetryLoaderStub()
+        let upgradedRetryService = LauncherTelemetryService(
+            defaults: upgradedDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: upgradedRetryLoader.load
+        )
+        try waitFor("activation snapshot retry after relaunch") {
+            upgradedRetryLoader.requestCount == 1
+        }
+        try expect(
+            upgradedRetryLoader.firstEventID == deniedSnapshotID
+                && upgradedRetryLoader.event(at: 0)?["diagnostics_consent_state"] as? String
+                    == "denied",
+            "activation snapshot retries preserve the event ID and explicit choice"
+        )
+        upgradedRetryLoader.completeFirst(statusCode: 202)
+        try waitFor("activation snapshot 2xx completion") {
+            upgradedDefaults.bool(forKey: "telemetry.activationSnapshot.completed.v1")
+                && upgradedDefaults.data(forKey: "telemetry.activationSnapshot.pending.v1") == nil
+        }
+        upgradedRetryService.recordGameSession(
+            durationSeconds: 180,
+            launcherSettings: telemetrySettings
+        )
+        upgradedRetryService.recordGameSession(
+            durationSeconds: 360,
+            launcherSettings: telemetrySettings
+        )
+        try waitFor("anonymous summaries after completed snapshot") {
+            upgradedRetryLoader.requestCount == 2
+        }
+        upgradedRetryLoader.completeFirst(statusCode: 202)
+        try waitFor("second anonymous summary") {
+            upgradedRetryLoader.requestCount == 3
+        }
+        upgradedRetryLoader.completeFirst(statusCode: 202)
+        try waitFor("anonymous summary queue drained") {
+            upgradedDefaults.data(forKey: "telemetry.sessionSummary.pendingEvents.v2") == nil
+        }
+        let completedReloadLoader = TelemetryLoaderStub()
+        let completedReloadService = LauncherTelemetryService(
+            defaults: upgradedDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: completedReloadLoader.load
+        )
+        completedReloadService.recordGameSession(
+            durationSeconds: 540,
+            launcherSettings: telemetrySettings
+        )
+        try waitFor("anonymous summary after relaunch") {
+            completedReloadLoader.requestCount == 1
+        }
+        try expect(
+            upgradedRetryLoader.requestCount == 3
+                && completedReloadLoader.event(at: 0)?["event"] as? String
+                    == "game_session_summary"
+                && upgradedDefaults.bool(forKey: "telemetry.activationSnapshot.completed.v1"),
+            "later sessions continue without recreating completed snapshot version 1"
+        )
+
+        let grantedDefaultsName = "LauncherTests.grantedSnapshot.\(UUID().uuidString)"
+        guard let grantedDefaults = UserDefaults(suiteName: grantedDefaultsName) else {
+            throw TestFailure("granted snapshot UserDefaults suite")
+        }
+        defer { grantedDefaults.removePersistentDomain(forName: grantedDefaultsName) }
+        grantedDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
+        grantedDefaults.set("granted", forKey: "telemetry.extendedConsent.state.v1")
+        grantedDefaults.set(1, forKey: "telemetry.extendedConsent.version.v1")
+        let grantedLoader = TelemetryLoaderStub()
+        let grantedService = LauncherTelemetryService(
+            defaults: grantedDefaults,
+            apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
+            device: telemetryDevice,
+            loader: grantedLoader.load
+        )
+        try waitFor("known granted snapshot on updated launcher start") {
+            grantedLoader.requestCount == 1
+        }
+        try expect(
+            grantedLoader.event(at: 0)?["diagnostics_consent_state"] as? String == "granted",
+            "known granted consent is captured without waiting for a game session"
+        )
+        grantedLoader.completeFirst(statusCode: 202)
+        try waitFor("granted snapshot completion") {
+            grantedDefaults.bool(forKey: "telemetry.activationSnapshot.completed.v1")
+                && grantedService.isExtendedDiagnosticsEnabled
+        }
 
         let diagnosticsDefaultsName = "LauncherTests.diagnostics.\(UUID().uuidString)"
         guard let diagnosticsDefaults = UserDefaults(suiteName: diagnosticsDefaultsName) else {
@@ -309,6 +495,7 @@ enum LauncherTests {
         }
         defer { diagnosticsDefaults.removePersistentDomain(forName: diagnosticsDefaultsName) }
         diagnosticsDefaults.set(true, forKey: "telemetry.firstSession.completed.v2")
+        diagnosticsDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let diagnosticsService = LauncherTelemetryService(
             defaults: diagnosticsDefaults,
             apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
@@ -344,11 +531,18 @@ enum LauncherTests {
                 && diagnosticsEvent["installation_id"] == nil,
             "consented diagnostics include applied settings without a persistent identifier"
         )
+        try expect(
+            diagnosticsDefaults.data(forKey: "telemetry.sessionSummary.pendingEvents.v2") != nil,
+            "consented sessions also create the independent anonymous summary"
+        )
         diagnosticsService.setExtendedDiagnosticsEnabled(false)
         try expect(
             !diagnosticsService.isExtendedDiagnosticsEnabled
-                && diagnosticsDefaults.data(forKey: "telemetry.extended.pendingEvents.v2") == nil,
-            "withdrawing consent synchronously clears diagnostics"
+                && diagnosticsDefaults.data(forKey: "telemetry.extended.pendingEvents.v2") == nil
+                && diagnosticsDefaults.data(
+                    forKey: "telemetry.sessionSummary.pendingEvents.v2"
+                ) != nil,
+            "withdrawing consent clears diagnostics without deleting anonymous summaries"
         )
 
         let oldConsentDefaultsName = "LauncherTests.old-consent.\(UUID().uuidString)"
@@ -358,7 +552,7 @@ enum LauncherTests {
         defer { oldConsentDefaults.removePersistentDomain(forName: oldConsentDefaultsName) }
         oldConsentDefaults.set("granted", forKey: "telemetry.extendedConsent.state.v1")
         oldConsentDefaults.set(0, forKey: "telemetry.extendedConsent.version.v1")
-        oldConsentDefaults.set(true, forKey: "telemetry.noticeShown.v1")
+        oldConsentDefaults.set(true, forKey: "telemetry.noticeShown.v2")
         oldConsentDefaults.set(Data("[]".utf8), forKey: "telemetry.extended.pendingEvents.v2")
         let oldConsentService = LauncherTelemetryService(
             defaults: oldConsentDefaults,
@@ -378,6 +572,7 @@ enum LauncherTests {
         }
         defer { duplicateDefaults.removePersistentDomain(forName: duplicateDefaultsName) }
         let duplicateLoader = TelemetryLoaderStub()
+        duplicateDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let duplicateService = LauncherTelemetryService(
             defaults: duplicateDefaults,
             apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
@@ -401,6 +596,7 @@ enum LauncherTests {
         }
         defer { staleDefaults.removePersistentDomain(forName: staleDefaultsName) }
         let staleLoader = TelemetryLoaderStub()
+        staleDefaults.set(true, forKey: "telemetry.activationSnapshot.completed.v1")
         let staleService = LauncherTelemetryService(
             defaults: staleDefaults,
             apiBaseURL: URL(string: "https://127.0.0.1:1/")!,
@@ -431,11 +627,15 @@ enum LauncherTests {
             durationSeconds: 900,
             launcherSettings: telemetrySettings
         )
+        try waitFor("anonymous summary survives stale first-session expiry") {
+            staleRetryLoader.requestCount == 1
+        }
         try expect(
             staleDefaults.bool(forKey: "telemetry.firstSession.completed.v2")
                 && staleDefaults.data(forKey: "telemetry.firstSession.pending.v2") == nil
-                && staleRetryLoader.requestCount == 0,
-            "a first-session event older than seven days is terminally discarded"
+                && staleRetryLoader.event(at: 0)?["event"] as? String
+                    == "game_session_summary",
+            "a stale first-session event is discarded without deleting session summaries"
         )
         let messageURL = LauncherTelemetryService.messageURL(
             apiBaseURL: URL(string: "https://sergeinaumov.dev/mactician/api/")!,
@@ -604,8 +804,8 @@ enum LauncherTests {
             "app bundle identifier"
         )
         try expect(infoPlist["CFBundleIconFile"] as? String == "Mactician.icns", "launcher icon name")
-        try expect(infoPlist["CFBundleShortVersionString"] as? String == "1.1.0", "launcher version")
-        try expect(infoPlist["CFBundleVersion"] as? String == "45", "launcher build")
+        try expect(infoPlist["CFBundleShortVersionString"] as? String == "1.1.3", "launcher version")
+        try expect(infoPlist["CFBundleVersion"] as? String == "48", "launcher build")
         try expect(
             infoPlist["SUFeedURL"] as? String == "https://sergeinaumov.dev/mactician/updates/appcast.xml",
             "Sparkle appcast URL"
@@ -703,10 +903,10 @@ enum LauncherTests {
             "emulator host icon name"
         )
         try expect(
-            emulatorHostInfo["CFBundleShortVersionString"] as? String == "1.1.0",
+            emulatorHostInfo["CFBundleShortVersionString"] as? String == "1.1.3",
             "emulator host version"
         )
-        try expect(emulatorHostInfo["CFBundleVersion"] as? String == "45", "emulator host build")
+        try expect(emulatorHostInfo["CFBundleVersion"] as? String == "48", "emulator host build")
         try expect(
             emulatorHostInfo["CFBundleIdentifier"] as? String
                 == "dev.sergeinaumov.mactician.game-host",
@@ -1105,6 +1305,20 @@ enum LauncherTests {
             localizationDirectories == ["en", "ru"],
             "Mactician localization resources"
         )
+        let telemetryNoticeSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent(
+                "Sources/LauncherTelemetryNoticeView.swift"
+            ),
+            encoding: .utf8
+        )
+        try expect(
+            telemetryNoticeSource.contains("telemetry.dont_send")
+                && telemetryNoticeSource.contains("extendedDiagnostics: false")
+                && telemetryNoticeSource.contains("telemetry.send")
+                && telemetryNoticeSource.contains("extendedDiagnostics: true")
+                && !telemetryNoticeSource.contains("Toggle("),
+            "telemetry notice presents explicit unselected diagnostics choices"
+        )
         let launcherModelSource = try String(
             contentsOf: sourceRoot.appendingPathComponent("Sources/LauncherModel.swift"),
             encoding: .utf8
@@ -1280,12 +1494,16 @@ private final class TelemetryLoaderStub {
     }
 
     var firstEventID: String? {
+        event(at: 0)?["event_id"] as? String
+    }
+
+    func event(at index: Int) -> [String: Any]? {
         lock.withLock {
-            guard let body = requests.first?.httpBody,
-                  let value = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
+            guard requests.indices.contains(index),
+                  let body = requests[index].httpBody else {
                 return nil
             }
-            return value["event_id"] as? String
+            return try? JSONSerialization.jsonObject(with: body) as? [String: Any]
         }
     }
 

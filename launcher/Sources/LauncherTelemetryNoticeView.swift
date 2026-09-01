@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LauncherTelemetryNoticeView: View {
     @ObservedObject var model: LauncherModel
-    @State private var extendedDiagnostics = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: LauncherTheme.Spacing.large) {
@@ -21,13 +20,6 @@ struct LauncherTelemetryNoticeView: View {
                 .foregroundColor(LauncherTheme.ColorToken.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Toggle(
-                LauncherL10n.text("telemetry.extended.toggle"),
-                isOn: $extendedDiagnostics
-            )
-            .toggleStyle(.checkbox)
-            .font(.system(size: 13, weight: .medium))
-
             Spacer()
 
             HStack(spacing: LauncherTheme.Spacing.regular) {
@@ -38,10 +30,12 @@ struct LauncherTelemetryNoticeView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(LauncherTheme.ColorToken.interactive)
                 Spacer()
-                Button(LauncherL10n.text("telemetry.continue")) {
-                    model.completeTelemetryNotice(
-                        extendedDiagnostics: extendedDiagnostics
-                    )
+                Button(LauncherL10n.text("telemetry.dont_send")) {
+                    model.completeTelemetryNotice(extendedDiagnostics: false)
+                }
+                .buttonStyle(LauncherOutlineButtonStyle())
+                Button(LauncherL10n.text("telemetry.send")) {
+                    model.completeTelemetryNotice(extendedDiagnostics: true)
                 }
                 .buttonStyle(LauncherPrimaryButtonStyle())
             }

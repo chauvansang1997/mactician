@@ -1,8 +1,34 @@
 # Changelog
 
-The current application metadata is version 1.1.0, build 45.
+The current application metadata is version 1.1.3, build 48.
 
 ## Unreleased
+
+## 1.1.3 — 2026-09-01
+
+### Fixed
+
+- Fix telemetry.
+
+## 1.1.2 — 2026-09-01
+
+### Changed
+
+- Send an anonymous duration-only summary after every completed game session,
+  without a stable identifier, device data, settings, or exact timestamps.
+- Show the updated telemetry notice once without changing the saved Extended
+  Diagnostics choice.
+- Reduce background FPS-monitoring work during gameplay.
+
+## 1.1.1 — 2026-08-31
+
+### Changed
+
+- Add a versioned, one-time activation snapshot after the explicit Extended
+  Diagnostics choice is known, without game-session diagnostics or a stable
+  installation identifier.
+- Retry the same snapshot event until the telemetry backend acknowledges it,
+  while keeping it independent from legacy first-session telemetry.
 
 ## 1.1.0 — 2026-08-27
 

@@ -19,7 +19,7 @@ Built for two tacticians. Shared with everyone.
 
 ## Project status
 
-- Version: **1.1.0** (build 45)
+- Version: **1.1.3** (build 48)
 - Host architecture: **Apple Silicon (`arm64`)**
 - Minimum deployment target: **macOS 12.0**, enforced by the build target and
   runtime preflight
@@ -52,8 +52,9 @@ is configured independently.
   plus the macOS window-fill shortcut.
 - Uses a Sparkle appcast with Ed25519 archive verification for updates; public
   releases are Developer ID signed and Apple-notarized.
-- Sends one unlinkable first-session event, offers separately consented extended
-  diagnostics, and can display validated operator messages. See
+- Sends minimized activation events, a versioned one-time fresh census, and an
+  unlinkable duration-only summary after every completed session; separately
+  consented extended diagnostics remain optional. It can also display validated operator messages. See
   [Telemetry and privacy](docs/telemetry.md).
 
 ## Requirements
@@ -86,7 +87,7 @@ Verify the version, build number,
 and the SHA-256 published with that release before opening it.
 
 1. Open the DMG and drag **Mactician** to **Applications**.
-2. Open it. Version 1.1.0 is signed with Apple Developer ID and notarized, so
+2. Open it. Version 1.1.3 is signed with Apple Developer ID and notarized, so
    Gatekeeper can verify it normally without **Open Anyway**.
 3. Review and accept the Android SDK terms, then choose **Install**. About
    2.3 GB is downloaded before extraction and AVD provisioning.
@@ -126,7 +127,7 @@ TFT_GAME_APK_DIR="$PROJECT_DIR/private/tft-apks" \
 ```
 
 This produces `dist/Mactician.app` and
-`dist/Mactician-1.1.0.dmg`, signed ad hoc for local validation.
+`dist/Mactician-1.1.3.dmg`, signed ad hoc for local validation.
 
 ### Provisioning integration test
 
@@ -215,7 +216,22 @@ and a rounded duration range. It contains no installation/device identifier,
 exact duration or time, settings, language, or Mac characteristics. The metric
 is reported as **Approximate activated installations**, not as users or people.
 
-With explicit opt-in only, every completed session also sends a separate
+The launcher version that starts the fresh census sends one separate
+`activation_snapshot` for snapshot version 1 per retained preferences domain.
+It waits while the diagnostics choice is unknown, then contains only a fresh
+event UUID, snapshot and consent versions, the explicit granted/denied state,
+and launcher version/build. It is sent regardless of that choice and carries no
+game-session diagnostics. The server keeps this new cumulative series separate
+from the earlier, known-undercounted first-session metric.
+
+Every completed session sends an independent anonymous summary containing only
+a fresh event UUID, duration, and launcher version/build. It contains no date,
+exact start/end time, stable identifier, device properties, or settings. The
+server immediately aggregates session count and play time by received UTC day,
+does not retain the raw payload or its source IP, and cannot link separate
+sessions into an installation history.
+
+With explicit opt-in only, every completed session additionally sends a separate
 diagnostic event with exact duration, applied graphics/resource settings, Mac
 model identifier, macOS version, total memory, and logical CPU count. Every
 session has an independent event UUID and no installation ID. Turning the
