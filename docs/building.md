@@ -6,7 +6,7 @@
 - Xcode Command Line Tools (`xcrun swiftc`, `xcrun clang`, `codesign`, `plutil`)
 - zsh, `jq`, `rg`, `curl`, `tar`, `zip`, `unzip`, `shasum`, and `xmllint`
 - Node.js only for `scripts/login-tft-from-keychain.command`
-- Four exact unmodified TFT `18.1-5388569` APK splits in a private local
+- Four exact unmodified TFT `18.1-5392842` APK splits in a private local
   directory; names, sizes, and hashes are in
   `launcher/Resources/release-manifest.json`
 

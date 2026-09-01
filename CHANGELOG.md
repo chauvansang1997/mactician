@@ -9,6 +9,10 @@ The current application metadata is version 1.1.3, build 48.
 - Add an approximate DAU metric backed by at most one unlinkable
   `daily_active` event per retained preferences domain and UTC day. The event
   contains no stable identifier, and the server does not retain its source IP.
+- Update the pinned live TFT game and signed update channel to
+  `18.1-5392842`, which includes Riot's 18.1B performance fixes.
+- Enable Riot's built-in Performance Mode with the **Maximum FPS** preset, and
+  disable it again when another graphics-detail preset is selected.
 
 ## 1.1.3 — 2026-09-01
 

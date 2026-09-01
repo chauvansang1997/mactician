@@ -99,6 +99,7 @@ final class RuntimeController {
             "TFT_CPU_CORES": "\(cpuCores)",
             "TFT_MEMORY_MB": "\(memoryMB)",
             "TFT_UI_SCALE": uiScale,
+            "TFT_PERFORMANCE_MODE": effectsQuality == .maximum ? "1" : "0",
             "TFT_GRAPHICS_PROFILE": "osft",
             "TFT_MVK_QUEUE_MODE": "async",
             "MVK_CONFIG_MAX_ACTIVE_METAL_COMMAND_BUFFERS_PER_QUEUE": "64",

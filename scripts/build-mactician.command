@@ -45,10 +45,10 @@ fi
 
 typeset -A EXPECTED_APK_HASHES
 EXPECTED_APK_HASHES=(
-    base.apk 52c27162d1e472d4ecae9cd5eee59e17b6051fff45a5f017ed13a03a0a2f5bd2
-    config.arm64_v8a.apk e8a4a3eafe9fc5cc305cf89c84da12245ac7854d98007aafd6f8baa11987c515
-    config.en.apk f0a117f3aed9c7e05cffbc4d5d436a2998017c2ef2b3e2b8301bd5224abc80a2
-    config.mdpi.apk fd3b018ca111c4907f427d5d7a9bef9ae39c6d2888f1ee5a751433660c3acff6
+    base.apk 020cac678a80783d3fd092a93d6ccd3bb53becffca24a1fc367714b84467d97a
+    config.arm64_v8a.apk 29194f199ffc9a61cc96f6f265e79a8a8e8f558f7796370188a1a233e83e403d
+    config.en.apk 3d4893049d1229a940f148268a9aeb63fbda2b21084875b2aa9feb631d66bc04
+    config.mdpi.apk db8ffe004222597c7e0b51c39899fd599129ea32a56fc4e9ec11f65fcf15f431
 )
 
 for apk expected_hash in ${(kv)EXPECTED_APK_HASHES}; do
@@ -143,6 +143,7 @@ copy_plain_file "$PROJECT_DIR/run-tft-root-affinity.command" "$RUNTIME_TEMPLATE/
 copy_plain_file "$PROJECT_DIR/run-tft-angle-opengl.command" "$RUNTIME_TEMPLATE/run-tft-angle-opengl.command"
 copy_plain_file "$PROJECT_DIR/scripts/run-asg-experiment.command" "$RUNTIME_TEMPLATE/scripts/run-asg-experiment.command"
 copy_plain_file "$PROJECT_DIR/scripts/watch-root-pso.command" "$RUNTIME_TEMPLATE/scripts/watch-root-pso.command"
+copy_plain_file "$PROJECT_DIR/scripts/update-tft-performance-mode.command" "$RUNTIME_TEMPLATE/scripts/update-tft-performance-mode.command"
 copy_plain_file "$PROJECT_DIR/scripts/android-environment.sh" "$RUNTIME_TEMPLATE/scripts/android-environment.sh"
 copy_plain_file "$PROJECT_DIR/artifacts/tft-pbe-18.1-5212127-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini" \
     "$RUNTIME_TEMPLATE/artifacts/tft-18.1-angle-opengl/Android_Codex.DeviceProfiles.shader-prewarm.ini"
@@ -157,6 +158,7 @@ chmod 755 \
     "$RUNTIME_TEMPLATE/run-tft-angle-opengl.command" \
     "$RUNTIME_TEMPLATE/scripts/run-asg-experiment.command" \
     "$RUNTIME_TEMPLATE/scripts/watch-root-pso.command" \
+    "$RUNTIME_TEMPLATE/scripts/update-tft-performance-mode.command" \
     "$RUNTIME_TEMPLATE/scripts/android-environment.sh"
 
 if rg -n '/Users/[[:alnum:]_.-]+/' "$APP_CONTENTS"; then

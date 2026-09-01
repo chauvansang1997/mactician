@@ -10,8 +10,9 @@ export TFT_ANGLE_OPENGL_PROFILE="$EXPERIMENT_PROFILE"
 export TFT_ANGLE_OPENGL_PROFILE_SHA256="b0b83466abef72b1f7f751bf92e804abbd3f9a1aac02f502a5d979d40f2b71ef"
 export TFT_ANGLE_DISABLED_FEATURES="${TFT_ANGLE_DISABLED_FEATURES:-preferSubmitAtFBOBoundary}"
 export TFT_ASG_WRITE_STEP_SIZE="${TFT_ASG_WRITE_STEP_SIZE:-16384}"
+export TFT_PERFORMANCE_MODE=1
 
-print "TFT performance-max: 67% 3D scale, reduced effects/LOD work, 16 KiB ASG writes, and no FBO-boundary submit."
+print "TFT performance-max: Riot Performance Mode, 67% 3D scale, reduced effects/LOD work, 16 KiB ASG writes, and no FBO-boundary submit."
 print "The full-resolution UI and the stable profile remain unchanged."
 
 exec "$PROJECT_DIR/run-tft-fast-quality.command"

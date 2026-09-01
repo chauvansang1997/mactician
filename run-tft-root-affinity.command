@@ -35,6 +35,7 @@ readonly GRAPHICS_PROFILE="${TFT_GRAPHICS_PROFILE:-stable}"
 readonly DISPLAY_SIZE="${TFT_DISPLAY_SIZE:-1600x900}"
 readonly DISPLAY_DENSITY="${TFT_DISPLAY_DENSITY:-260}"
 readonly UI_SCALE="${TFT_UI_SCALE:-1.0}"
+readonly PERFORMANCE_MODE="${TFT_PERFORMANCE_MODE:-0}"
 readonly CPU_CORES="${TFT_CPU_CORES:-7}"
 readonly MEMORY_MB="${TFT_MEMORY_MB:-6144}"
 readonly GAME_LANGUAGE="${TFT_GAME_LANGUAGE:-en-US}"
@@ -219,6 +220,10 @@ fi
 if [[ "$UI_SCALE" != "1.0" && "$UI_SCALE" != "1.25" && "$UI_SCALE" != "1.5" \
         && "$UI_SCALE" != "1.75" && "$UI_SCALE" != "2.0" ]]; then
     print "TFT_UI_SCALE must be one of 1.0, 1.25, 1.5, 1.75, or 2.0."
+    exit 2
+fi
+if [[ "$PERFORMANCE_MODE" != "0" && "$PERFORMANCE_MODE" != "1" ]]; then
+    print "TFT_PERFORMANCE_MODE must be either 0 or 1."
     exit 2
 fi
 if [[ -n "$ANGLE_EXTRA_FEATURES" && ! "$ANGLE_EXTRA_FEATURES" =~ '^([A-Za-z0-9_]+[*]?)(:[A-Za-z0-9_]+[*]?)*$' ]]; then
@@ -1107,9 +1112,55 @@ if [[ "$ACTIVE_ENGINE_CONFIG_SHA256" != "$EXPECTED_ENGINE_CONFIG_SHA256" ]]; the
     print "Engine.ini with the UI scale failed SHA-256 verification: ${ACTIVE_ENGINE_CONFIG_SHA256:-empty}."
     exit 1
 fi
+
+# Riot persists its built-in Performance Mode in GameUserSettings.ini. Keep it
+# aligned with Mactician's graphics preset before TFT starts, without changing
+# any of the other user-owned settings in the GraphicsSettings structure.
+readonly GAME_USER_SETTINGS="$PROFILE_DIR/GameUserSettings.ini"
+readonly GAME_USER_SETTINGS_CURRENT="$UI_SCALE_TEMP_DIR/GameUserSettings.ini.current"
+readonly GAME_USER_SETTINGS_NEXT="$UI_SCALE_TEMP_DIR/GameUserSettings.ini.next"
+if "$ADB" -s "$SERIAL" shell test -f "$GAME_USER_SETTINGS"; then
+    "$ADB" -s "$SERIAL" pull "$GAME_USER_SETTINGS" "$GAME_USER_SETTINGS_CURRENT" >/dev/null
+else
+    /usr/bin/touch "$GAME_USER_SETTINGS_CURRENT"
+fi
+"$PROJECT_DIR/scripts/update-tft-performance-mode.command" \
+    "$PERFORMANCE_MODE" "$GAME_USER_SETTINGS_CURRENT" > "$GAME_USER_SETTINGS_NEXT"
+readonly GAME_USER_SETTINGS_CONTEXT="$(
+    if "$ADB" -s "$SERIAL" shell test -f "$GAME_USER_SETTINGS"; then
+        "$ADB" -s "$SERIAL" shell ls -Zd "$GAME_USER_SETTINGS"
+    else
+        "$ADB" -s "$SERIAL" shell ls -Zd "$PROFILE_DIR"
+    fi | tr -d '\r' | awk '{ print $1 }'
+)"
+if [[ ! "$GAME_USER_SETTINGS_CONTEXT" =~ '^u:object_r:[A-Za-z0-9_]+:s0(:c[0-9]+(,c[0-9]+)*)?$' ]]; then
+    print "The GameUserSettings.ini SELinux context could not be determined safely: $GAME_USER_SETTINGS_CONTEXT"
+    exit 1
+fi
+readonly GAME_USER_SETTINGS_REMOTE_NEXT="$PROFILE_DIR/GameUserSettings.ini.performance-mode-next"
+"$ADB" -s "$SERIAL" push "$GAME_USER_SETTINGS_NEXT" "$GAME_USER_SETTINGS_REMOTE_NEXT" >/dev/null
+"$ADB" -s "$SERIAL" shell chown "$DATA_OWNER" "$GAME_USER_SETTINGS_REMOTE_NEXT"
+"$ADB" -s "$SERIAL" shell chmod 600 "$GAME_USER_SETTINGS_REMOTE_NEXT"
+"$ADB" -s "$SERIAL" shell chcon "$GAME_USER_SETTINGS_CONTEXT" "$GAME_USER_SETTINGS_REMOTE_NEXT"
+"$ADB" -s "$SERIAL" shell mv "$GAME_USER_SETTINGS_REMOTE_NEXT" "$GAME_USER_SETTINGS"
+readonly EXPECTED_GAME_USER_SETTINGS_SHA256="$(shasum -a 256 "$GAME_USER_SETTINGS_NEXT" | awk '{ print $1 }')"
+readonly ACTIVE_GAME_USER_SETTINGS_SHA256="$(
+    "$ADB" -s "$SERIAL" shell sha256sum "$GAME_USER_SETTINGS" \
+        | tr -d '\r' \
+        | awk '{ print $1 }'
+)"
+if [[ "$ACTIVE_GAME_USER_SETTINGS_SHA256" != "$EXPECTED_GAME_USER_SETTINGS_SHA256" ]]; then
+    print "GameUserSettings.ini with Performance Mode failed SHA-256 verification: ${ACTIVE_GAME_USER_SETTINGS_SHA256:-empty}."
+    exit 1
+fi
 rm -rf "$UI_SCALE_TEMP_DIR"
 UI_SCALE_TEMP_DIR=""
 print "Unreal UI scale is configured: ${UI_SCALE}x with a ${DISPLAY_SIZE} framebuffer."
+if [[ "$PERFORMANCE_MODE" == "1" ]]; then
+    print "Riot Performance Mode is enabled for Maximum FPS."
+else
+    print "Riot Performance Mode is disabled for the selected graphics preset."
+fi
 
 if [[ -n "$UNREAL_LIB_OVERLAY" ]]; then
     if [[ -z "$OVERLAY_BASE_PATH" ]]; then

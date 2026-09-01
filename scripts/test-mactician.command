@@ -70,6 +70,7 @@ for syntax_script in \
         "$PROJECT_DIR/scripts/audit-native-gles-coverage.command" \
         "$PROJECT_DIR/scripts/build-android-egl-capability-probe.command" \
         "$PROJECT_DIR/scripts/watch-root-pso.command" \
+        "$PROJECT_DIR/scripts/update-tft-performance-mode.command" \
         "$PROJECT_DIR/scripts/android-environment.sh" \
         "$PROJECT_DIR/scripts/prepare-sparkle.command" \
         "$PROJECT_DIR/scripts/publish-mactician-update.command" \
@@ -78,6 +79,29 @@ for syntax_script in \
         "$PROJECT_DIR/scripts/integration-test-mactician.command"; do
     zsh -o NO_BG_NICE -n "$syntax_script"
 done
+
+readonly PERFORMANCE_MODE_FIXTURE="$LIFECYCLE_ROOT/GameUserSettings.ini"
+readonly PERFORMANCE_MODE_ENABLED="$LIFECYCLE_ROOT/GameUserSettings.enabled.ini"
+readonly PERFORMANCE_MODE_DISABLED="$LIFECYCLE_ROOT/GameUserSettings.disabled.ini"
+cat > "$PERFORMANCE_MODE_FIXTURE" <<'PERFORMANCE_MODE_EOF'
+[/Script/TFTSettings.TFTUserSettings]
+FrameRateLimit=60.000000
+GraphicsSettings=(bBatterySaverMode=False,bPerformanceMode=False,PreferredFrameRateLimit=60.000000,QualitySettingPreset=0)
+
+[ScalabilityGroups]
+sg.ResolutionQuality=67
+PERFORMANCE_MODE_EOF
+"$PROJECT_DIR/scripts/update-tft-performance-mode.command" \
+    1 "$PERFORMANCE_MODE_FIXTURE" > "$PERFORMANCE_MODE_ENABLED"
+"$PROJECT_DIR/scripts/update-tft-performance-mode.command" \
+    0 "$PERFORMANCE_MODE_ENABLED" > "$PERFORMANCE_MODE_DISABLED"
+if ! grep -Fqx \
+        'GraphicsSettings=(bBatterySaverMode=False,bPerformanceMode=True,PreferredFrameRateLimit=60.000000,QualitySettingPreset=0)' \
+        "$PERFORMANCE_MODE_ENABLED" \
+        || ! cmp -s "$PERFORMANCE_MODE_FIXTURE" "$PERFORMANCE_MODE_DISABLED"; then
+    print -u2 "TFT Performance Mode settings transform regressed."
+    exit 1
+fi
 
 readonly UNREAL_CVAR_STORAGE_FIXTURE="$PROJECT_DIR/scripts/test-fixtures/unreal-cvar-storage/fake-adb.command"
 readonly UNREAL_CVAR_STORAGE_RESULT="$LIFECYCLE_ROOT/unreal-cvar-storage.json"
@@ -2376,6 +2400,7 @@ env \
     TFT_CPU_CORES=6 \
     TFT_MEMORY_MB=6144 \
     TFT_UI_SCALE=1.0 \
+    TFT_PERFORMANCE_MODE=0 \
     "$LAUNCHER_DIR/Resources/launcher-runtime.command" \
     >"$LIFECYCLE_ROOT/events.jsonl" &
 readonly LIFECYCLE_PID=$!
@@ -2451,6 +2476,7 @@ env \
     TFT_CPU_CORES=6 \
     TFT_MEMORY_MB=6144 \
     TFT_UI_SCALE=1.0 \
+    TFT_PERFORMANCE_MODE=0 \
     "$LAUNCHER_DIR/Resources/launcher-runtime.command" \
     >"$LIFECYCLE_ROOT/game-exit-events.jsonl" &
 readonly GAME_EXIT_PID=$!

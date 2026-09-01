@@ -32,29 +32,29 @@
   ],
   "game": {
     "packageName": "com.riotgames.league.teamfighttactics",
-    "version": "18.1-5388569",
-    "versionCode": 8388569,
-    "baseSHA256": "52c27162d1e472d4ecae9cd5eee59e17b6051fff45a5f017ed13a03a0a2f5bd2",
+    "version": "18.1-5392842",
+    "versionCode": 8392842,
+    "baseSHA256": "020cac678a80783d3fd092a93d6ccd3bb53becffca24a1fc367714b84467d97a",
     "apks": [
       {
         "name": "base.apk",
-        "size": 100495671,
-        "sha256": "52c27162d1e472d4ecae9cd5eee59e17b6051fff45a5f017ed13a03a0a2f5bd2"
+        "size": 100524343,
+        "sha256": "020cac678a80783d3fd092a93d6ccd3bb53becffca24a1fc367714b84467d97a"
       },
       {
         "name": "config.arm64_v8a.apk",
-        "size": 93979873,
-        "sha256": "e8a4a3eafe9fc5cc305cf89c84da12245ac7854d98007aafd6f8baa11987c515"
+        "size": 93988065,
+        "sha256": "29194f199ffc9a61cc96f6f265e79a8a8e8f558f7796370188a1a233e83e403d"
       },
       {
         "name": "config.en.apk",
         "size": 37273,
-        "sha256": "f0a117f3aed9c7e05cffbc4d5d436a2998017c2ef2b3e2b8301bd5224abc80a2"
+        "sha256": "3d4893049d1229a940f148268a9aeb63fbda2b21084875b2aa9feb631d66bc04"
       },
       {
         "name": "config.mdpi.apk",
         "size": 83007,
-        "sha256": "fd3b018ca111c4907f427d5d7a9bef9ae39c6d2888f1ee5a751433660c3acff6"
+        "sha256": "db8ffe004222597c7e0b51c39899fd599129ea32a56fc4e9ec11f65fcf15f431"
       }
     ]
   },

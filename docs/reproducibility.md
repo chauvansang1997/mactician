@@ -13,7 +13,7 @@ packages, downloaded Android runtime, AVD userdata, or signing credentials.
 | Google APIs ARM64 system image | Android 36 revision 7 | `fb47d861d6f87230ee0fe70f610d579935ca77f41a0eefbf391595d3dc4b5ee2` |
 | Sparkle | 2.9.4 | `ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9` |
 
-The game release is `18.1-5388569`, package
+The game release is `18.1-5392842`, package
 `com.riotgames.league.teamfighttactics`. The four split names, sizes, and
 SHA-256 values are in `launcher/Resources/release-manifest.json`; the APK bytes
 are deliberately absent from Git.
@@ -21,7 +21,7 @@ are deliberately absent from Git.
 The current release manifest itself hashes to:
 
 ```text
-1edd3795623c108a7ba1a3ee027956ad55e0823a6e3a8067587c1befdd1400ad  launcher/Resources/release-manifest.json
+748aac13713901496bd214cda162642743a7775e98eb091949b23b78221f12dc  launcher/Resources/release-manifest.json
 ```
 
 ## Active profile hashes

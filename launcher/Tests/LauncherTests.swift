@@ -1328,6 +1328,19 @@ enum LauncherTests {
                 && rootRuntimeScript.contains("TFT_UI_SCALE"),
             "Unreal UI scale launch configuration"
         )
+        let runtimeControllerSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent("Sources/RuntimeController.swift"),
+            encoding: .utf8
+        )
+        try expect(
+            rootRuntimeScript.contains("GameUserSettings.ini")
+                && rootRuntimeScript.contains("TFT_PERFORMANCE_MODE")
+                && rootRuntimeScript.contains("update-tft-performance-mode.command")
+                && runtimeControllerSource.contains(
+                    "\"TFT_PERFORMANCE_MODE\": effectsQuality == .maximum ? \"1\" : \"0\""
+                ),
+            "Riot Performance Mode follows the Maximum FPS preset"
+        )
 
         let component = manifest.components[0]
         let partial = temporary.appendingPathComponent("partial.zip")
@@ -1507,6 +1520,12 @@ enum LauncherTests {
             ),
             encoding: .utf8
         )
+        let maximumFPSEntrypoint = try String(
+            contentsOf: sourceRoot.deletingLastPathComponent().appendingPathComponent(
+                "run-tft-performance-max.command"
+            ),
+            encoding: .utf8
+        )
         for profileText in [highEffectsProfile, performanceEffectsProfile] {
             try expect(
                 profileText.contains("CVars=sg.ResolutionQuality=100")
@@ -1526,7 +1545,8 @@ enum LauncherTests {
         try expect(
             maximumFPSProfile.contains("CVars=sg.ResolutionQuality=67")
                 && maximumFPSProfile.contains("CVars=r.ScreenPercentage=67")
-                && maximumFPSProfile.contains("CVars=Android.OpenGL.NumRemoteProgramCompileServices=4"),
+                && maximumFPSProfile.contains("CVars=Android.OpenGL.NumRemoteProgramCompileServices=4")
+                && maximumFPSEntrypoint.contains("export TFT_PERFORMANCE_MODE=1"),
             "maximum FPS profile combines lower 3D scale with asynchronous PSO compilation"
         )
         let keychainScript = try String(
