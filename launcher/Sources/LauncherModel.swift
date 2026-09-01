@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class LauncherModel: ObservableObject {
@@ -37,12 +38,21 @@ final class LauncherModel: ObservableObject {
     @Published var extendedDiagnosticsEnabled: Bool
     @Published private(set) var activeConfiguration: LaunchConfigurationSnapshot?
     @Published private(set) var gameRelease: GameRelease
+    @Published private(set) var selectedRuntimeKind = GameRuntimeKind.androidEmulator
+    @Published private(set) var nativeIPadDescriptor: NativeIPadAppDescriptor?
+    @Published private(set) var nativeIPadLastValidatedAt: Date?
+    @Published private(set) var nativeIPadValidationError: String?
+    @Published private(set) var nativeIPadHasSavedState = false
 
     let paths: LauncherPaths
     let manifest: ReleaseManifest
+    let nativeIPadRuntimeEnabled: Bool
     private(set) var installState: InstallState
     private let installer: InstallerService
-    private let runtime: RuntimeController
+    private let androidRuntime: AndroidRuntimeControllerAdapter
+    private let nativeRuntime: NativeIPadRuntimeController
+    private let nativeValidator: NativeIPadRuntimeValidator
+    private let nativeStateStore: NativeIPadRuntimeStateStore
     private let telemetry = LauncherTelemetryService()
     private let inputBridge = InputBridgeService()
     private let audioRecovery = EmulatorAudioRecoveryService()
@@ -58,6 +68,7 @@ final class LauncherModel: ObservableObject {
     private var hotkeyEventTapAttemptFailed = false
     private var gameSessionTracker = GameSessionTracker()
     private var pendingAnnouncements: [LauncherAnnouncement] = []
+    private var activeRuntimeKind: GameRuntimeKind?
 
     init() {
         do {
@@ -69,7 +80,19 @@ final class LauncherModel: ObservableObject {
             gameRelease = (try? HostedGameUpdate.loadVerifiedFeed(from: paths.hostedGameFeed).release)
                 ?? manifest.game
             installer = InstallerService(paths: paths, manifest: manifest)
-            runtime = RuntimeController(paths: paths)
+            androidRuntime = AndroidRuntimeControllerAdapter(runtime: RuntimeController(paths: paths))
+            let nativeValidator = NativeIPadRuntimeValidator()
+            self.nativeValidator = nativeValidator
+            nativeRuntime = NativeIPadRuntimeController(validator: nativeValidator)
+            let nativeStateStore = NativeIPadRuntimeStateStore(stateURL: paths.nativeIPadStateFile)
+            self.nativeStateStore = nativeStateStore
+            nativeIPadRuntimeEnabled = ExperimentalFeatures.nativeIPadRuntimeEnabled
+            selectedRuntimeKind = GameRuntimeSelection.restoredKind(
+                savedValue: UserDefaults.standard.string(
+                    forKey: ExperimentalFeatures.selectedRuntimeDefaultsKey
+                ),
+                nativeEnabled: nativeIPadRuntimeEnabled
+            )
             let saved = UserDefaults.standard.string(forKey: "launchProfile") ?? "balanced"
             selectedProfileID = manifest.profiles.contains(where: { $0.id == saved }) ? saved : "balanced"
             selectedEffectsQualityID = EffectsQuality.selection(
@@ -101,20 +124,35 @@ final class LauncherModel: ObservableObject {
             )
             shouldShowTelemetryNotice = telemetry.shouldShowNotice
             extendedDiagnosticsEnabled = telemetry.isExtendedDiagnosticsEnabled
-            if Self.installationLooksReady(
-                state: installState,
-                paths: paths,
-                gameRelease: gameRelease
-            ) {
-                mode = .ready
-                status = "Ready to play"
-                detail = "Choose graphics and language, then press Play."
-            } else {
-                mode = .needsInstall
-                status = "Initial installation required"
-                detail = "Android components will be downloaded directly from dl.google.com."
+            if nativeIPadRuntimeEnabled {
+                switch nativeStateStore.load() {
+                case .missing:
+                    break
+                case let .loaded(state, url):
+                    nativeIPadHasSavedState = true
+                    do {
+                        let descriptor = try nativeValidator.validate(url)
+                        let validatedAt = Date()
+                        try nativeStateStore.save(
+                            descriptor: descriptor,
+                            sourceKind: state.sourceKind,
+                            validatedAt: validatedAt
+                        )
+                        nativeIPadDescriptor = descriptor
+                        nativeIPadLastValidatedAt = validatedAt
+                        nativeIPadValidationError = nil
+                    } catch {
+                        nativeIPadValidationError = NativeIPadDiagnostics.displayMessage(
+                            error.localizedDescription
+                        )
+                    }
+                case let .invalid(message):
+                    nativeIPadHasSavedState = true
+                    nativeIPadValidationError = message
+                }
             }
-            refreshHotkeyStatus()
+            applySelectedRuntimePresentation()
+            if selectedRuntimeKind == .androidEmulator { refreshHotkeyStatus() }
             inputBridge.observeStatus { [weak self] eventTapActive, eventTapAttemptFailed in
                 self?.updateHotkeyActivity(
                     eventTapActive: eventTapActive,
@@ -196,6 +234,28 @@ final class LauncherModel: ObservableObject {
         mode == .installing || isCheckingGameUpdate || settingsLocked
     }
 
+    var runtimeSelectionLocked: Bool {
+        mode == .installing || isCheckingGameUpdate || settingsLocked
+    }
+
+    var isNativeIPadRuntimeSelected: Bool {
+        selectedRuntimeKind == .nativeIPadExperimental
+    }
+
+    var nativeIPadVersionSummary: String? {
+        guard let descriptor = nativeIPadDescriptor else { return nil }
+        switch (descriptor.shortVersion, descriptor.buildVersion) {
+        case let (.some(version), .some(build)):
+            return "\(version) (\(build))"
+        case let (.some(version), .none):
+            return version
+        case let (.none, .some(build)):
+            return LauncherL10n.format("native_ipad.build_format", build)
+        case (.none, .none):
+            return nil
+        }
+    }
+
     var selectedConfiguration: LaunchConfigurationSnapshot {
         LaunchConfigurationSnapshot(
             languageTitle: selectedLanguage.title,
@@ -244,6 +304,82 @@ final class LauncherModel: ObservableObject {
         UserDefaults.standard.set(percent, forKey: "uiScalePercent")
     }
 
+    func selectRuntime(_ kind: GameRuntimeKind) {
+        guard kind != selectedRuntimeKind,
+              GameRuntimeSelection.canSelect(
+                kind,
+                nativeEnabled: nativeIPadRuntimeEnabled,
+                stateMachineLocked: runtimeSelectionLocked,
+                androidRunning: androidRuntime.isRunning,
+                nativeRunning: nativeRuntime.isRunning
+              ) else { return }
+        selectedRuntimeKind = kind
+        UserDefaults.standard.set(
+            kind.rawValue,
+            forKey: ExperimentalFeatures.selectedRuntimeDefaultsKey
+        )
+        failure = nil
+        activeConfiguration = nil
+        isGameUpdateAvailable = false
+        isCheckingGameUpdate = false
+        loginAnimationRepair.stop()
+        audioRecovery.stop()
+        fpsOverlay.stop()
+        inputBridge.stop()
+        applySelectedRuntimePresentation()
+        if kind == .androidEmulator { refreshHotkeyStatus() }
+    }
+
+    func chooseNativeIPadApplication() {
+        guard nativeIPadRuntimeEnabled,
+              selectedRuntimeKind == .nativeIPadExperimental,
+              !maintenanceLocked,
+              !nativeRuntime.isRunning,
+              !androidRuntime.isRunning else { return }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.treatsFilePackagesAsDirectories = false
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.prompt = LauncherL10n.text("native_ipad.choose")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        validateAndPersistNativeApplication(at: url)
+    }
+
+    func revalidateNativeIPadApplication() {
+        guard selectedRuntimeKind == .nativeIPadExperimental,
+              !maintenanceLocked,
+              !nativeRuntime.isRunning,
+              !androidRuntime.isRunning,
+              let url = nativeIPadDescriptor?.canonicalURL else { return }
+        validateAndPersistNativeApplication(at: url)
+    }
+
+    func forgetNativeIPadApplication() {
+        guard selectedRuntimeKind == .nativeIPadExperimental,
+              !maintenanceLocked,
+              !nativeRuntime.isRunning,
+              !androidRuntime.isRunning else { return }
+        do {
+            try nativeStateStore.reset()
+            nativeIPadDescriptor = nil
+            nativeIPadLastValidatedAt = nil
+            nativeIPadValidationError = nil
+            nativeIPadHasSavedState = false
+            failure = nil
+            mode = .needsInstall
+            status = LauncherL10n.text("native_ipad.not_selected.title")
+            detail = LauncherL10n.text("native_ipad.not_selected.description")
+        } catch {
+            fail(
+                "Could not forget the selected application: "
+                    + NativeIPadDiagnostics.displayMessage(error.localizedDescription),
+                origin: .reset
+            )
+        }
+    }
+
     func applyRecommendedResources() {
         guard !settingsLocked else { return }
         let recommendation = recommendedResources
@@ -263,6 +399,7 @@ final class LauncherModel: ObservableObject {
     }
 
     func install(repair: Bool = false) {
+        guard selectedRuntimeKind == .androidEmulator else { return }
         guard repair || licenseAccepted else {
             fail(
                 "Accept the Android SDK License Agreement before installing.",
@@ -339,39 +476,72 @@ final class LauncherModel: ObservableObject {
 
     func play() {
         guard mode == .ready,
-              !shouldShowTelemetryNotice,
-              !isCheckingGameUpdate,
-              !isGameUpdateAvailable else { return }
+              !androidRuntime.isRunning,
+              !nativeRuntime.isRunning else { return }
+        if selectedRuntimeKind == .androidEmulator {
+            guard !shouldShowTelemetryNotice,
+                  !isCheckingGameUpdate,
+                  !isGameUpdateAvailable else { return }
+        }
         failure = nil
         runtimeHadError = false
         stopRequested = false
         emulatorPID = nil
-        let profile = selectedProfile
-        let effectsQuality = selectedEffectsQuality
-        let language = selectedLanguage
-        launchProfile = profile
-        launchEffectsQuality = effectsQuality
-        activeConfiguration = selectedConfiguration
+        activeRuntimeKind = selectedRuntimeKind
         mode = .launching
-        status = "Launching TFT…"
-        detail = "Starting the game in \(selectedLanguage.title)."
         do {
-            try runtime.start(
-                profile: profile,
-                effectsQuality: effectsQuality,
-                language: language,
-                cpuCores: selectedCPUCores,
-                memoryMB: selectedMemoryMB,
-                uiScalePercent: selectedUIScalePercent,
-                state: installState,
-                gameRelease: gameRelease,
-                gameResources: paths.gameResources(for: gameRelease)
-            ) { [weak self] event in
-                self?.handle(event)
+            switch selectedRuntimeKind {
+            case .androidEmulator:
+                let profile = selectedProfile
+                let effectsQuality = selectedEffectsQuality
+                let language = selectedLanguage
+                launchProfile = profile
+                launchEffectsQuality = effectsQuality
+                activeConfiguration = selectedConfiguration
+                status = "Launching TFT…"
+                detail = "Starting the game in \(selectedLanguage.title)."
+                try androidRuntime.launch(
+                    configuration: .android(AndroidRuntimeLaunchConfiguration(
+                        profile: profile,
+                        effectsQuality: effectsQuality,
+                        language: language,
+                        cpuCores: selectedCPUCores,
+                        memoryMB: selectedMemoryMB,
+                        uiScalePercent: selectedUIScalePercent,
+                        state: installState,
+                        gameRelease: gameRelease,
+                        gameResources: paths.gameResources(for: gameRelease)
+                    ))
+                ) { [weak self] event in
+                    self?.handle(event)
+                }
+            case .nativeIPadExperimental:
+                guard let savedDescriptor = nativeIPadDescriptor else {
+                    throw LauncherError.integrity("Choose and validate a prepared iPad application first")
+                }
+                let descriptor = try nativeValidator.validate(savedDescriptor.canonicalURL)
+                let validatedAt = Date()
+                try nativeStateStore.save(descriptor: descriptor, validatedAt: validatedAt)
+                nativeIPadDescriptor = descriptor
+                nativeIPadLastValidatedAt = validatedAt
+                nativeIPadValidationError = nil
+                activeConfiguration = nil
+                status = LauncherL10n.text("native_ipad.launching")
+                detail = LauncherL10n.text("native_ipad.warning")
+                try nativeRuntime.launch(configuration: .nativeIPad(descriptor)) { [weak self] event in
+                    self?.handle(event)
+                }
             }
         } catch {
+            activeRuntimeKind = nil
+            let message = selectedRuntimeKind == .nativeIPadExperimental
+                ? NativeIPadDiagnostics.displayMessage(error.localizedDescription)
+                : error.localizedDescription
+            if selectedRuntimeKind == .nativeIPadExperimental {
+                recordNativeError(message)
+            }
             fail(
-                error.localizedDescription,
+                message,
                 origin: failureOrigin(for: error, fallback: .launch)
             )
         }
@@ -381,22 +551,35 @@ final class LauncherModel: ObservableObject {
         guard mode == .launching || mode == .playing else { return }
         stopRequested = true
         mode = .stopping
-        status = "Stopping emulator…"
+        status = activeRuntimeKind == .nativeIPadExperimental
+            ? LauncherL10n.text("native_ipad.stopping")
+            : "Stopping emulator…"
         loginAnimationRepair.stop()
         audioRecovery.stop()
         fpsOverlay.stop()
         inputBridge.stop()
-        runtime.stop()
+        switch activeRuntimeKind {
+        case .nativeIPadExperimental:
+            nativeRuntime.stop()
+        case .androidEmulator, .none:
+            androidRuntime.stop()
+        }
     }
 
     func repair() {
-        guard !maintenanceLocked, !runtime.isRunning else { return }
+        if selectedRuntimeKind == .nativeIPadExperimental {
+            revalidateNativeIPadApplication()
+            return
+        }
+        guard !maintenanceLocked, !androidRuntime.isRunning, !nativeRuntime.isRunning else { return }
         licenseAccepted = true
         install(repair: true)
     }
 
     func updateGame() {
-        guard mode == .ready, isGameUpdateAvailable, !runtime.isRunning else { return }
+        guard selectedRuntimeKind == .androidEmulator,
+              mode == .ready, isGameUpdateAvailable,
+              !androidRuntime.isRunning, !nativeRuntime.isRunning else { return }
         failure = nil
         gameUpdateResultMessage = nil
         installationWasCancelled = false
@@ -447,7 +630,11 @@ final class LauncherModel: ObservableObject {
     }
 
     func refreshGameUpdateAvailability() {
-        guard mode == .ready, !runtime.isRunning, !isCheckingGameUpdate else { return }
+        guard selectedRuntimeKind == .androidEmulator,
+              mode == .ready,
+              !androidRuntime.isRunning,
+              !nativeRuntime.isRunning,
+              !isCheckingGameUpdate else { return }
         isCheckingGameUpdate = true
         isGameUpdateAvailable = false
         installer.checkGameUpdateAvailability(currentState: installState) { [weak self] result in
@@ -475,7 +662,10 @@ final class LauncherModel: ObservableObject {
     }
 
     func reset() {
-        guard !maintenanceLocked, !runtime.isRunning else { return }
+        guard selectedRuntimeKind == .androidEmulator,
+              !maintenanceLocked,
+              !androidRuntime.isRunning,
+              !nativeRuntime.isRunning else { return }
         loginAnimationRepair.stop()
         audioRecovery.stop()
         fpsOverlay.stop()
@@ -514,11 +704,16 @@ final class LauncherModel: ObservableObject {
     }
 
     func requestInputPermissions() {
+        guard selectedRuntimeKind == .androidEmulator else { return }
         inputBridge.requestPermissions()
         refreshHotkeyStatus()
     }
 
     func refreshHotkeyStatus() {
+        guard selectedRuntimeKind == .androidEmulator else {
+            hotkeyStatus = .ready
+            return
+        }
         let facts = InputBridgeService.permissionFacts(
             eventTapActive: hotkeyEventTapActive,
             eventTapAttemptFailed: hotkeyEventTapAttemptFailed
@@ -529,6 +724,15 @@ final class LauncherModel: ObservableObject {
     func recoverFromFailure() {
         guard let failure else { return }
         self.failure = nil
+        if selectedRuntimeKind == .nativeIPadExperimental {
+            if nativeIPadDescriptor != nil {
+                revalidateNativeIPadApplication()
+            } else {
+                applySelectedRuntimePresentation()
+                chooseNativeIPadApplication()
+            }
+            return
+        }
         switch failure.recoveryAction {
         case .retryInstallation, .repairInstallation:
             licenseAccepted = true
@@ -548,7 +752,8 @@ final class LauncherModel: ObservableObject {
         fpsOverlay.stop()
         inputBridge.stop()
         finishGameSession(showAnnouncement: false)
-        runtime.stop()
+        androidRuntime.shutdown()
+        nativeRuntime.shutdown()
     }
 
     func dismissAnnouncement() {
@@ -569,50 +774,70 @@ final class LauncherModel: ObservableObject {
         case .ready:
             mode = .playing
             gameSessionTracker.start()
-            status = "TFT is open"
-            detail = "Space — shop  •  D — reroll  •  F — XP  •  Tab — items/traits  •  V — players/damage  •  Control + Fn + F — fill window."
-            loginAnimationRepair.start(adb: paths.adb, log: paths.launcherLog)
-            if let emulatorPID {
-                let profile = launchProfile ?? selectedProfile
-                audioRecovery.start(
-                    targetPID: emulatorPID,
-                    adb: paths.adb,
-                    log: paths.launcherLog
-                )
-                fpsOverlay.start(targetPID: emulatorPID, adb: paths.adb)
-                inputBridge.start(
-                    targetPID: emulatorPID,
-                    adb: paths.adb,
-                    width: profile.width,
-                    height: profile.height
-                )
+            if activeRuntimeKind == .nativeIPadExperimental {
+                status = LauncherL10n.text("native_ipad.running.title")
+                detail = LauncherL10n.text("native_ipad.running.description")
+            } else {
+                status = "TFT is open"
+                detail = "Space — shop  •  D — reroll  •  F — XP  •  Tab — items/traits  •  V — players/damage  •  Control + Fn + F — fill window."
+                loginAnimationRepair.start(adb: paths.adb, log: paths.launcherLog)
+                if let emulatorPID {
+                    let profile = launchProfile ?? selectedProfile
+                    audioRecovery.start(
+                        targetPID: emulatorPID,
+                        adb: paths.adb,
+                        log: paths.launcherLog
+                    )
+                    fpsOverlay.start(targetPID: emulatorPID, adb: paths.adb)
+                    inputBridge.start(
+                        targetPID: emulatorPID,
+                        adb: paths.adb,
+                        width: profile.width,
+                        height: profile.height
+                    )
+                }
             }
         case .error:
-            guard !stopRequested else { return }
+            guard !stopRequested || activeRuntimeKind == .nativeIPadExperimental else { return }
+            let errorMessage = activeRuntimeKind == .nativeIPadExperimental
+                ? NativeIPadDiagnostics.displayMessage(event.message ?? "Runtime error")
+                : event.message ?? "Runtime error"
             runtimeHadError = true
             loginAnimationRepair.stop()
             audioRecovery.stop()
             fpsOverlay.stop()
             inputBridge.stop()
-            fail(event.message ?? "Runtime error", origin: .runtime)
+            finishGameSession(showAnnouncement: false)
+            if activeRuntimeKind == .nativeIPadExperimental {
+                recordNativeError(errorMessage)
+            }
+            activeRuntimeKind = nil
+            fail(errorMessage, origin: .runtime)
         case .gameStopped:
-            finishGameSession(showAnnouncement: true)
+            finishGameSession(showAnnouncement: activeRuntimeKind == .androidEmulator)
             stopGame()
         case .stopped:
+            let stoppedRuntime = activeRuntimeKind
             loginAnimationRepair.stop()
             audioRecovery.stop()
             fpsOverlay.stop()
             inputBridge.stop()
-            finishGameSession(showAnnouncement: true)
+            finishGameSession(showAnnouncement: stoppedRuntime == .androidEmulator)
             emulatorPID = nil
             if stopRequested || !runtimeHadError {
                 mode = .ready
                 activeConfiguration = nil
                 launchProfile = nil
                 launchEffectsQuality = nil
-                status = "Emulator closed"
-                detail = "Temporary overlays and settings were restored."
+                if stoppedRuntime == .nativeIPadExperimental {
+                    status = LauncherL10n.text("native_ipad.closed.title")
+                    detail = LauncherL10n.text("native_ipad.closed.description")
+                } else {
+                    status = "Emulator closed"
+                    detail = "Temporary overlays and settings were restored."
+                }
             }
+            activeRuntimeKind = nil
             stopRequested = false
             runtimeHadError = false
         case .downloading, .installingGame:
@@ -626,9 +851,78 @@ final class LauncherModel: ObservableObject {
         refreshHotkeyStatus()
     }
 
+    private func validateAndPersistNativeApplication(at url: URL) {
+        let currentURL = nativeIPadDescriptor?.canonicalURL
+        do {
+            let descriptor = try nativeValidator.validate(url)
+            let validatedAt = Date()
+            try nativeStateStore.save(descriptor: descriptor, validatedAt: validatedAt)
+            nativeIPadDescriptor = descriptor
+            nativeIPadLastValidatedAt = validatedAt
+            nativeIPadValidationError = nil
+            nativeIPadHasSavedState = true
+            failure = nil
+            mode = .ready
+            status = LauncherL10n.text("native_ipad.ready.title")
+            detail = LauncherL10n.text("native_ipad.ready.description")
+        } catch {
+            let message = NativeIPadDiagnostics.displayMessage(error.localizedDescription)
+            nativeIPadValidationError = message
+            if url.standardizedFileURL.resolvingSymlinksInPath() == currentURL {
+                recordNativeError(message)
+            }
+            fail(message, origin: .validation)
+        }
+    }
+
+    private func recordNativeError(_ message: String) {
+        let sanitized = NativeIPadDiagnostics.displayMessage(message)
+        nativeIPadValidationError = sanitized
+        guard let descriptor = nativeIPadDescriptor else { return }
+        try? nativeStateStore.save(
+            descriptor: descriptor,
+            lastError: sanitized,
+            validatedAt: nativeIPadLastValidatedAt ?? Date.distantPast
+        )
+    }
+
+    private func applySelectedRuntimePresentation() {
+        activeRuntimeKind = nil
+        progress = 0
+        installationWasCancelled = false
+        switch selectedRuntimeKind {
+        case .androidEmulator:
+            if Self.installationLooksReady(
+                state: installState,
+                paths: paths,
+                gameRelease: gameRelease
+            ) {
+                mode = .ready
+                status = "Ready to play"
+                detail = "Choose graphics and language, then press Play."
+            } else {
+                mode = .needsInstall
+                status = "Initial installation required"
+                detail = "Android components will be downloaded directly from dl.google.com."
+            }
+        case .nativeIPadExperimental:
+            if nativeIPadDescriptor != nil {
+                mode = .ready
+                status = LauncherL10n.text("native_ipad.ready.title")
+                detail = LauncherL10n.text("native_ipad.ready.description")
+            } else {
+                mode = .needsInstall
+                status = LauncherL10n.text("native_ipad.not_selected.title")
+                detail = nativeIPadValidationError
+                    ?? LauncherL10n.text("native_ipad.not_selected.description")
+            }
+        }
+    }
+
     private func finishGameSession(showAnnouncement: Bool) {
         let endedAt = Date()
         guard let duration = gameSessionTracker.finish(at: endedAt) else { return }
+        guard activeRuntimeKind == .androidEmulator else { return }
         let profile = launchProfile ?? selectedProfile
         let effectsQuality = launchEffectsQuality ?? selectedEffectsQuality
         telemetry.recordGameSession(

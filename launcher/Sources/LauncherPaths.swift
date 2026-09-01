@@ -59,6 +59,8 @@ struct LauncherPaths {
     }
     var staging: URL { root.appendingPathComponent(".staging", isDirectory: true) }
     var stateFile: URL { root.appendingPathComponent("install-state.json") }
+    var nativeIPadDirectory: URL { root.appendingPathComponent("native-ipad", isDirectory: true) }
+    var nativeIPadStateFile: URL { nativeIPadDirectory.appendingPathComponent("native-ipad-state.json") }
     var logDirectory: URL { root.appendingPathComponent("logs", isDirectory: true) }
     var launcherLog: URL { logDirectory.appendingPathComponent("launcher.log") }
     var gameResources: URL { bundleResources.appendingPathComponent("Game", isDirectory: true) }

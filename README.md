@@ -56,6 +56,9 @@ is configured independently.
   unlinkable duration-only summary after every completed session; separately
   consented extended diagnostics remain optional. It can also display validated operator messages. See
   [Telemetry and privacy](docs/telemetry.md).
+- Includes a disabled-by-default Native iPad Runtime proof of concept for
+  validating and launching a separately prepared `.app` without acquiring,
+  modifying, or signing it. Android remains the default and supported path.
 
 ## Requirements
 
@@ -270,6 +273,8 @@ sharing. Report vulnerabilities through the private process in
 - [Engineering case study](https://sergeinaumov.dev/writing/how-i-built-mactician)
 - [Research log](docs/research-log.md)
 - [Native GLES and graphics-transport experiment](docs/native-gles-transport-experiment.md)
+- [Native iPad Runtime proof of concept](docs/native-ipad-runtime.md)
+- [Native iPad Runtime validation record](docs/native-ipad-runtime-validation.md)
 - [Reproducibility](docs/reproducibility.md)
 - [Launch profiles](docs/launch-profiles.md)
 - [Telemetry and privacy](docs/telemetry.md)

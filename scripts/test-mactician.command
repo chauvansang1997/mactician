@@ -2517,6 +2517,8 @@ xcrun swiftc \
     "$LAUNCHER_DIR/Sources/FPSOverlayService.swift" \
     "$LAUNCHER_DIR/Sources/InputBridgeService.swift" \
     "$LAUNCHER_DIR/Sources/InstallerService.swift" \
+    "$LAUNCHER_DIR/Sources/RuntimeController.swift" \
+    "$LAUNCHER_DIR/Sources/NativeIPadRuntime.swift" \
     "$LAUNCHER_DIR/Tests/LauncherTests.swift" \
     -o "$TEST_BINARY"
 

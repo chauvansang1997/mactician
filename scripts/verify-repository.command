@@ -135,21 +135,21 @@ while IFS= read -r path_match; do
         ./scripts/build-mactician.command:*|./launcher/Tests/LauncherTests.swift:*) ;;
         *) fail "developer-specific absolute path remains: $path_match" ;;
     esac
-done < <(rg -n --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+done < <(rg -n --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
     --glob '!scripts/verify-repository.command' "$developer_root" . || true)
 
 typeset identity_match
 while IFS= read -r identity_match; do
     [[ "$identity_match" == *"local.${local_user}.tft-pbe-"* ]] \
         || fail "personal identifier remains outside the documented compatibility IDs: $identity_match"
-done < <(rg -n --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+done < <(rg -n --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
     --glob '!scripts/verify-repository.command' "$local_user" . || true)
 
 typeset codex_match
 while IFS= read -r codex_match; do
     [[ "$codex_match" == *'Android_Codex'* ]] \
         || fail "workspace-only Codex label remains: $codex_match"
-done < <(rg -ni --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+done < <(rg -ni --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
     --glob '!scripts/verify-repository.command' 'codex' . || true)
 while IFS= read -r codex_match; do
     [[ "${codex_match:t}" == Android_Codex.DeviceProfiles*.ini ]] \
@@ -158,13 +158,13 @@ done < <(find . -iname '*codex*' -not -path './.git/*' \
     -not -path './launcher/.build/*' -not -path './dist/*' \
     -not -path './dist-build*/*' -not -path './runtime/*' | LC_ALL=C sort)
 
-if rg -ni --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+if rg -ni --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
         --glob '!scripts/verify-repository.command' \
         'next chat|handoff for the next|managed workspace|documents/codex|files-mentioned-by-the-user' .; then
     fail "internal handoff or managed-workspace language remains"
 fi
 
-if rg -n '[А-Яа-яЁё]' --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+if rg -n '[А-Яа-яЁё]' --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
         --glob '!launcher/Resources/ru.lproj/**' \
         --glob '!tools/tft-screen-classifier.swift' \
         --glob '!scripts/test-mactician.command' \
@@ -204,7 +204,7 @@ done < <(find . -type f \( -name '*.apk' -o -name '*.apks' -o -name '*.xapk' \
     -o -name '*.secret' -o -name '.DS_Store' \) \
     -not -path './.git/*' -not -path './dist-build*/*')
 
-if rg -n --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+if rg -n --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
         --glob '!scripts/verify-repository.command' \
         -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}' .; then
     fail "text resembling a private key or access token remains"
@@ -212,7 +212,7 @@ fi
 
 typeset owner_placeholder='<OW'"NER>"
 typeset repository_placeholder='<REPOS'"ITORY>"
-if rg -n --hidden --glob '!.git/**' --glob '!launcher/.build/**' \
+if rg -n --hidden --glob '!.git' --glob '!.git/**' --glob '!launcher/.build/**' \
         --glob '!scripts/verify-repository.command' \
         "$owner_placeholder|$repository_placeholder|NAME \(TEAM_ID\)|TODO_PUBLIC" .; then
     fail "publication placeholder remains"

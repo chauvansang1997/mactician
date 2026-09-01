@@ -19,6 +19,9 @@ state.
 - `RuntimeController.swift` validates the pinned game state, refreshes the small
   launcher-owned runtime project, prepares a verified overlay, starts
   `launcher-runtime.command`, and decodes its JSON-line events.
+- `NativeIPadRuntime.swift` defines the parallel runtime contract, adapts the
+  existing Android controller, validates and stores a user-selected prepared
+  `.app`, and tracks its exact `NSRunningApplication` through `NSWorkspace`.
 - `run-tft-root-affinity.command` and `scripts/run-asg-experiment.command` own the
   low-level emulator session, reversible AVD edits, guest overlays, Android
   graphics configuration, and cleanup.
@@ -55,6 +58,20 @@ stateDiagram-v2
     Failed --> Launching: retry supported launch failure
 ```
 
+When the experimental feature gate is enabled, the same presentation states
+can instead route to the Native iPad backend. Native readiness comes from a
+separate validated application bookmark and never changes `InstallState`.
+
+```mermaid
+flowchart LR
+    UI["SwiftUI launcher"] --> Coordinator["Runtime coordinator"]
+    Coordinator --> Android["Android Emulator backend"]
+    Coordinator --> Native["Native iPad experimental backend"]
+    Android --> AVD["Android guest / TFT"]
+    Native --> Workspace["NSWorkspace"]
+    Workspace --> App["Prepared iPad app bundle"]
+```
+
 `InstallState.Stage` progresses through `empty`, `downloading`, `sdk_installed`,
 `avd_created`, and `ready`. The JSON state also records installed component
 versions, pinned game version/base hash, overlay hash, schema version, and last
@@ -78,6 +95,8 @@ downloads/               resumable component archives during installation
 .staging/                 transactional temporary files
 logs/launcher.log        launcher/runtime diagnostics
 install-state.json       durable installation state
+native-ipad/
+  native-ipad-state.json validated prepared-app bookmark and metadata
 ```
 
 Game APKs are build-time application resources; they are verified against

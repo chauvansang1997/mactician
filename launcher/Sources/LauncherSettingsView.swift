@@ -6,6 +6,7 @@ struct LauncherSettingsView: View {
     @Binding var showResetConfirmation: Bool
     @Environment(\.presentationMode) private var presentationMode
     @State private var showsResourceHelp = false
+    @State private var showsNativeForgetConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,14 +14,24 @@ struct LauncherSettingsView: View {
             LauncherDivider()
             ScrollView {
                 VStack(alignment: .leading, spacing: LauncherTheme.Spacing.large) {
-                    gameSection
-                    LauncherDivider()
-                    performanceSection
-                    LauncherDivider()
-                    telemetrySection
-                    LauncherDivider()
-                    hotkeySection
-                    LauncherDivider()
+                    if model.nativeIPadRuntimeEnabled {
+                        experimentalSection
+                        LauncherDivider()
+                    }
+                    if !model.isNativeIPadRuntimeSelected {
+                        gameSection
+                        LauncherDivider()
+                        performanceSection
+                        LauncherDivider()
+                    }
+                    if !model.isNativeIPadRuntimeSelected {
+                        telemetrySection
+                        LauncherDivider()
+                    }
+                    if !model.isNativeIPadRuntimeSelected {
+                        hotkeySection
+                        LauncherDivider()
+                    }
                     updateSection
                     LauncherDivider()
                     maintenanceSection
@@ -28,7 +39,10 @@ struct LauncherSettingsView: View {
                 .padding(LauncherTheme.Spacing.large)
             }
         }
-        .frame(width: LauncherTheme.Metric.sheetWidth, height: 620)
+        .frame(
+            width: LauncherTheme.Metric.sheetWidth,
+            height: model.nativeIPadRuntimeEnabled ? 660 : 620
+        )
         .background(LauncherTheme.ColorToken.surface)
         .preferredColorScheme(.dark)
         .onAppear { model.refreshHotkeyStatus() }
@@ -42,6 +56,17 @@ struct LauncherSettingsView: View {
             }
         } message: {
             Text(LauncherL10n.text("reset.confirmation.message"))
+        }
+        .alert(
+            LauncherL10n.text("native_ipad.forget.confirmation.title"),
+            isPresented: $showsNativeForgetConfirmation
+        ) {
+            Button(LauncherL10n.text("action.cancel"), role: .cancel) { }
+            Button(LauncherL10n.text("native_ipad.forget"), role: .destructive) {
+                model.forgetNativeIPadApplication()
+            }
+        } message: {
+            Text(LauncherL10n.text("native_ipad.forget.confirmation.message"))
         }
     }
 
@@ -131,6 +156,105 @@ struct LauncherSettingsView: View {
             }
         }
         .disabled(model.settingsLocked)
+    }
+
+    private var experimentalSection: some View {
+        VStack(alignment: .leading, spacing: LauncherTheme.Spacing.regular) {
+            LauncherSectionHeader(
+                LauncherL10n.text("experimental.title"),
+                description: LauncherL10n.text("native_ipad.warning")
+            )
+
+            settingRow(LauncherL10n.text("experimental.runtime")) {
+                LauncherMenuControl(value: runtimeTitle(model.selectedRuntimeKind)) {
+                    ForEach(GameRuntimeKind.allCases) { kind in
+                        Button {
+                            model.selectRuntime(kind)
+                        } label: {
+                            if kind == model.selectedRuntimeKind {
+                                Label(runtimeTitle(kind), systemImage: "checkmark")
+                            } else {
+                                Text(runtimeTitle(kind))
+                            }
+                        }
+                        .disabled(kind == .nativeIPadExperimental && !model.nativeIPadRuntimeEnabled)
+                    }
+                }
+                .frame(width: 260)
+            }
+            .disabled(model.runtimeSelectionLocked)
+
+            if model.isNativeIPadRuntimeSelected {
+                Text(LauncherL10n.text("native_ipad.disclaimer"))
+                    .font(.system(size: 12))
+                    .foregroundColor(LauncherTheme.ColorToken.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let descriptor = model.nativeIPadDescriptor {
+                    VStack(alignment: .leading, spacing: LauncherTheme.Spacing.xSmall) {
+                        nativeMetadataRow(
+                            LauncherL10n.text("native_ipad.application"),
+                            descriptor.displayName
+                        )
+                        if let version = model.nativeIPadVersionSummary {
+                            nativeMetadataRow(LauncherL10n.text("native_ipad.version"), version)
+                        }
+                        nativeMetadataRow(
+                            LauncherL10n.text("native_ipad.bundle_identifier"),
+                            descriptor.bundleIdentifier
+                        )
+                        nativeMetadataRow(
+                            LauncherL10n.text("native_ipad.signature"),
+                            LauncherL10n.text("native_ipad.signature.\(descriptor.signatureKind.rawValue)")
+                        )
+                        if let date = model.nativeIPadLastValidatedAt {
+                            HStack {
+                                Text(LauncherL10n.text("native_ipad.last_validated"))
+                                Spacer()
+                                Text(date, style: .relative)
+                            }
+                            .font(.system(size: 11))
+                            .foregroundColor(LauncherTheme.ColorToken.textTertiary)
+                        }
+                    }
+                    .padding(LauncherTheme.Spacing.regular)
+                    .background(
+                        RoundedRectangle(cornerRadius: LauncherTheme.Metric.controlRadius)
+                            .fill(LauncherTheme.ColorToken.raisedControl.opacity(0.62))
+                    )
+                } else if let error = model.nativeIPadValidationError {
+                    Text(error)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(LauncherTheme.ColorToken.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: LauncherTheme.Spacing.medium) {
+                    Button(
+                        LauncherL10n.text(
+                            model.nativeIPadDescriptor == nil
+                                ? "native_ipad.choose"
+                                : "native_ipad.replace"
+                        )
+                    ) { model.chooseNativeIPadApplication() }
+                        .buttonStyle(LauncherSecondaryButtonStyle())
+
+                    if model.nativeIPadDescriptor != nil {
+                        Button(LauncherL10n.text("native_ipad.revalidate")) {
+                            model.revalidateNativeIPadApplication()
+                        }
+                        .buttonStyle(LauncherSecondaryButtonStyle())
+                    }
+                    if model.nativeIPadHasSavedState {
+                        Button(LauncherL10n.text("native_ipad.forget")) {
+                            showsNativeForgetConfirmation = true
+                        }
+                        .buttonStyle(LauncherTertiaryButtonStyle(tint: LauncherTheme.ColorToken.danger))
+                    }
+                }
+                .disabled(model.maintenanceLocked)
+            }
+        }
     }
 
     private var performanceSection: some View {
@@ -317,32 +441,40 @@ struct LauncherSettingsView: View {
         VStack(alignment: .leading, spacing: LauncherTheme.Spacing.regular) {
             LauncherSectionHeader(
                 LauncherL10n.text("settings.maintenance.title"),
-                description: LauncherL10n.text("settings.maintenance.description")
+                description: LauncherL10n.text(
+                    model.isNativeIPadRuntimeSelected
+                        ? "native_ipad.maintenance.description"
+                        : "settings.maintenance.description"
+                )
             )
 
             HStack(spacing: LauncherTheme.Spacing.medium) {
-                Button(LauncherL10n.text("action.repair_installation")) { model.repair() }
-                    .buttonStyle(LauncherSecondaryButtonStyle())
-                    .disabled(model.maintenanceLocked)
+                if !model.isNativeIPadRuntimeSelected {
+                    Button(LauncherL10n.text("action.repair_installation")) { model.repair() }
+                        .buttonStyle(LauncherSecondaryButtonStyle())
+                        .disabled(model.maintenanceLocked)
+                }
                 Button(LauncherL10n.text("action.data_folder")) { model.openDataFolder() }
                     .buttonStyle(LauncherSecondaryButtonStyle())
                 Button(LauncherL10n.text("action.view_log")) { model.openLog() }
                     .buttonStyle(LauncherSecondaryButtonStyle())
             }
 
-            LauncherDivider()
+            if !model.isNativeIPadRuntimeSelected {
+                LauncherDivider()
 
-            HStack(alignment: .center, spacing: LauncherTheme.Spacing.regular) {
-                Text(LauncherL10n.text("settings.maintenance.reset_description"))
-                    .font(.system(size: 12))
-                    .foregroundColor(LauncherTheme.ColorToken.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer()
-                Button(LauncherL10n.text("action.reset_all_data")) {
-                    showResetConfirmation = true
+                HStack(alignment: .center, spacing: LauncherTheme.Spacing.regular) {
+                    Text(LauncherL10n.text("settings.maintenance.reset_description"))
+                        .font(.system(size: 12))
+                        .foregroundColor(LauncherTheme.ColorToken.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Button(LauncherL10n.text("action.reset_all_data")) {
+                        showResetConfirmation = true
+                    }
+                    .buttonStyle(LauncherDestructiveButtonStyle())
+                    .disabled(model.maintenanceLocked)
                 }
-                .buttonStyle(LauncherDestructiveButtonStyle())
-                .disabled(model.maintenanceLocked)
             }
         }
     }
@@ -397,6 +529,26 @@ struct LauncherSettingsView: View {
                 .foregroundColor(LauncherTheme.ColorToken.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private func runtimeTitle(_ kind: GameRuntimeKind) -> String {
+        LauncherL10n.text(
+            kind == .androidEmulator
+                ? "experimental.runtime.android"
+                : "experimental.runtime.native_ipad"
+        )
+    }
+
+    private func nativeMetadataRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+            Spacer()
+            Text(value)
+                .font(.system(size: 11, design: .monospaced))
+                .textSelection(.enabled)
+        }
+        .font(.system(size: 11))
+        .foregroundColor(LauncherTheme.ColorToken.textSecondary)
     }
 
     private var usesRecommendedResources: Bool {

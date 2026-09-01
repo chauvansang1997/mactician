@@ -9,11 +9,19 @@ struct LauncherStateDeck: View {
         Group {
             switch model.mode {
             case .needsInstall:
-                LauncherInstallRequiredView(model: model)
+                if model.isNativeIPadRuntimeSelected {
+                    LauncherNativeIPadRequiredView(model: model)
+                } else {
+                    LauncherInstallRequiredView(model: model)
+                }
             case .installing:
                 LauncherInstallingView(model: model)
             case .ready:
-                LauncherReadyView(model: model, showSettings: $showSettings)
+                if model.isNativeIPadRuntimeSelected {
+                    LauncherNativeIPadReadyView(model: model)
+                } else {
+                    LauncherReadyView(model: model, showSettings: $showSettings)
+                }
             case .launching:
                 LauncherLaunchingView(model: model)
             case .playing:
@@ -28,6 +36,166 @@ struct LauncherStateDeck: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .launcherSurface()
         .shadow(color: Color.black.opacity(0.34), radius: 18, y: 8)
+    }
+}
+
+private struct LauncherNativeIPadRequiredView: View {
+    @ObservedObject var model: LauncherModel
+    @State private var showsForgetConfirmation = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: LauncherTheme.Spacing.large) {
+            LauncherStatusHeader(
+                symbol: "app.badge",
+                color: LauncherTheme.ColorToken.warning,
+                title: LauncherL10n.text("native_ipad.not_selected.title"),
+                description: LauncherL10n.text("native_ipad.not_selected.description")
+            )
+
+            Text(LauncherL10n.text("native_ipad.disclaimer"))
+                .font(.system(size: 12))
+                .foregroundColor(LauncherTheme.ColorToken.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let error = model.nativeIPadValidationError {
+                Text(error)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(LauncherTheme.ColorToken.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: LauncherTheme.Spacing.medium) {
+                Button(LauncherL10n.text("native_ipad.choose")) {
+                    model.chooseNativeIPadApplication()
+                }
+                .buttonStyle(LauncherPrimaryButtonStyle())
+                .keyboardShortcut(.defaultAction)
+
+                Button(LauncherL10n.text("native_ipad.use_android")) {
+                    model.selectRuntime(.androidEmulator)
+                }
+                .buttonStyle(LauncherSecondaryButtonStyle())
+                if model.nativeIPadHasSavedState {
+                    Button(LauncherL10n.text("native_ipad.forget")) {
+                        showsForgetConfirmation = true
+                    }
+                    .buttonStyle(LauncherTertiaryButtonStyle(tint: LauncherTheme.ColorToken.danger))
+                }
+                Spacer()
+            }
+        }
+        .alert(
+            LauncherL10n.text("native_ipad.forget.confirmation.title"),
+            isPresented: $showsForgetConfirmation
+        ) {
+            Button(LauncherL10n.text("action.cancel"), role: .cancel) { }
+            Button(LauncherL10n.text("native_ipad.forget"), role: .destructive) {
+                model.forgetNativeIPadApplication()
+            }
+        } message: {
+            Text(LauncherL10n.text("native_ipad.forget.confirmation.message"))
+        }
+    }
+}
+
+private struct LauncherNativeIPadReadyView: View {
+    @ObservedObject var model: LauncherModel
+    @State private var showsForgetConfirmation = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: LauncherTheme.Spacing.large) {
+            HStack(alignment: .top, spacing: LauncherTheme.Spacing.large) {
+                LauncherStatusHeader(
+                    symbol: "checkmark",
+                    color: LauncherTheme.ColorToken.success,
+                    title: LauncherL10n.text("native_ipad.ready.title"),
+                    description: LauncherL10n.text("native_ipad.ready.description")
+                )
+                Spacer()
+                Button(LauncherL10n.text("action.play")) { model.play() }
+                    .buttonStyle(LauncherPrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(model.nativeIPadDescriptor == nil)
+            }
+
+            if let descriptor = model.nativeIPadDescriptor {
+                HStack(spacing: LauncherTheme.Spacing.medium) {
+                    nativeField(
+                        LauncherL10n.text("native_ipad.application"),
+                        descriptor.displayName
+                    )
+                    nativeField(
+                        LauncherL10n.text("native_ipad.version"),
+                        model.nativeIPadVersionSummary ?? LauncherL10n.text("native_ipad.version.unavailable")
+                    )
+                    nativeField(
+                        LauncherL10n.text("native_ipad.signature"),
+                        LauncherL10n.text("native_ipad.signature.\(descriptor.signatureKind.rawValue)")
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: LauncherTheme.Spacing.xSmall) {
+                    Text(descriptor.bundleIdentifier)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(LauncherTheme.ColorToken.textSecondary)
+                        .textSelection(.enabled)
+                    if let date = model.nativeIPadLastValidatedAt {
+                        HStack(spacing: LauncherTheme.Spacing.xSmall) {
+                            Text(LauncherL10n.text("native_ipad.last_validated"))
+                            Text(date, style: .relative)
+                        }
+                        .font(.system(size: 11))
+                        .foregroundColor(LauncherTheme.ColorToken.textTertiary)
+                    }
+                    Text(LauncherL10n.text("native_ipad.external_updates"))
+                        .font(.system(size: 11))
+                        .foregroundColor(LauncherTheme.ColorToken.textTertiary)
+                }
+            }
+
+            HStack(spacing: LauncherTheme.Spacing.medium) {
+                Button(LauncherL10n.text("native_ipad.revalidate")) {
+                    model.revalidateNativeIPadApplication()
+                }
+                .buttonStyle(LauncherSecondaryButtonStyle())
+                Button(LauncherL10n.text("native_ipad.replace")) {
+                    model.chooseNativeIPadApplication()
+                }
+                .buttonStyle(LauncherTertiaryButtonStyle())
+                Button(LauncherL10n.text("native_ipad.forget")) {
+                    showsForgetConfirmation = true
+                }
+                .buttonStyle(LauncherTertiaryButtonStyle(tint: LauncherTheme.ColorToken.danger))
+                Spacer()
+            }
+        }
+        .alert(
+            LauncherL10n.text("native_ipad.forget.confirmation.title"),
+            isPresented: $showsForgetConfirmation
+        ) {
+            Button(LauncherL10n.text("action.cancel"), role: .cancel) { }
+            Button(LauncherL10n.text("native_ipad.forget"), role: .destructive) {
+                model.forgetNativeIPadApplication()
+            }
+        } message: {
+            Text(LauncherL10n.text("native_ipad.forget.confirmation.message"))
+        }
+    }
+
+    private func nativeField(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: LauncherTheme.Spacing.xSmall) {
+            LauncherFieldLabel(text: label)
+            Text(value)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(LauncherTheme.ColorToken.textPrimary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, LauncherTheme.Spacing.regular)
+        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: LauncherTheme.Metric.controlRadius)
+                .fill(LauncherTheme.ColorToken.raisedControl.opacity(0.72))
+        )
     }
 }
 
@@ -468,11 +636,23 @@ private struct LauncherLaunchingView: View {
             LauncherStatusHeader(
                 symbol: "circle.dotted",
                 color: LauncherTheme.ColorToken.interactive,
-                title: LauncherL10n.text("launching.title"),
+                title: LauncherL10n.text(
+                    model.isNativeIPadRuntimeSelected
+                        ? "native_ipad.launching.title"
+                        : "launching.title"
+                ),
                 description: model.status,
                 spinning: true
             )
-            configurationSummary(model.activeConfiguration ?? model.selectedConfiguration)
+            if model.isNativeIPadRuntimeSelected {
+                if let descriptor = model.nativeIPadDescriptor {
+                    Label(descriptor.displayName, systemImage: "app")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(LauncherTheme.ColorToken.textSecondary)
+                }
+            } else {
+                configurationSummary(model.activeConfiguration ?? model.selectedConfiguration)
+            }
             HStack {
                 Spacer()
                 Button(LauncherL10n.text("action.view_log")) { model.openLog() }
@@ -488,8 +668,43 @@ private struct LauncherPlayingView: View {
     @ObservedObject var model: LauncherModel
 
     var body: some View {
-        let configuration = model.activeConfiguration ?? model.selectedConfiguration
+        if model.isNativeIPadRuntimeSelected {
+            nativePlayingView
+        } else {
+            androidPlayingView
+        }
+    }
+
+    private var nativePlayingView: some View {
         VStack(alignment: .leading, spacing: LauncherTheme.Spacing.large) {
+            HStack(alignment: .top, spacing: LauncherTheme.Spacing.large) {
+                LauncherStatusHeader(
+                    symbol: "checkmark",
+                    color: LauncherTheme.ColorToken.success,
+                    title: LauncherL10n.text("native_ipad.running.title"),
+                    description: LauncherL10n.text("native_ipad.running.description")
+                )
+                Spacer()
+                Button(LauncherL10n.text("action.stop_game")) { model.stopGame() }
+                    .buttonStyle(LauncherSecondaryButtonStyle())
+            }
+            if let descriptor = model.nativeIPadDescriptor {
+                Label(
+                    "\(descriptor.displayName) · \(descriptor.bundleIdentifier)",
+                    systemImage: "app"
+                )
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundColor(LauncherTheme.ColorToken.textSecondary)
+            }
+            Text(LauncherL10n.text("native_ipad.no_android_services"))
+                .font(.system(size: 12))
+                .foregroundColor(LauncherTheme.ColorToken.textTertiary)
+        }
+    }
+
+    private var androidPlayingView: some View {
+        let configuration = model.activeConfiguration ?? model.selectedConfiguration
+        return VStack(alignment: .leading, spacing: LauncherTheme.Spacing.large) {
             HStack(alignment: .top, spacing: LauncherTheme.Spacing.large) {
                 LauncherStatusHeader(
                     symbol: "checkmark",
@@ -551,8 +766,16 @@ private struct LauncherStoppingView: View {
             LauncherStatusHeader(
                 symbol: "circle.dotted",
                 color: LauncherTheme.ColorToken.warning,
-                title: LauncherL10n.text("stopping.title"),
-                description: LauncherL10n.text("stopping.description"),
+                title: LauncherL10n.text(
+                    model.isNativeIPadRuntimeSelected
+                        ? "native_ipad.stopping.title"
+                        : "stopping.title"
+                ),
+                description: LauncherL10n.text(
+                    model.isNativeIPadRuntimeSelected
+                        ? "native_ipad.stopping.description"
+                        : "stopping.description"
+                ),
                 spinning: true
             )
             HStack {
@@ -576,8 +799,16 @@ private struct LauncherFailureView: View {
                 color: failure.origin == .reset
                     ? LauncherTheme.ColorToken.danger
                     : LauncherTheme.ColorToken.warning,
-                title: LauncherL10n.text(failure.titleLocalizationKey),
-                description: LauncherL10n.text(failure.summaryLocalizationKey)
+                title: LauncherL10n.text(
+                    model.isNativeIPadRuntimeSelected
+                        ? "native_ipad.error.title"
+                        : failure.titleLocalizationKey
+                ),
+                description: LauncherL10n.text(
+                    model.isNativeIPadRuntimeSelected
+                        ? "native_ipad.error.summary"
+                        : failure.summaryLocalizationKey
+                )
             )
 
             DisclosureGroup(isExpanded: $showsTechnicalDetails) {
@@ -605,13 +836,20 @@ private struct LauncherFailureView: View {
 
             HStack(spacing: LauncherTheme.Spacing.medium) {
                 if failure.recoveryAction != .none {
-                    Button(LauncherL10n.text(failure.recoveryLocalizationKey)) {
+                    Button(LauncherL10n.text(
+                        model.isNativeIPadRuntimeSelected
+                            ? (model.nativeIPadDescriptor == nil
+                                ? "native_ipad.choose_another"
+                                : "native_ipad.revalidate")
+                            : failure.recoveryLocalizationKey
+                    )) {
                         model.recoverFromFailure()
                     }
                     .buttonStyle(LauncherPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
                 }
-                if failure.origin == .launch || failure.origin == .runtime {
+                if !model.isNativeIPadRuntimeSelected
+                    && (failure.origin == .launch || failure.origin == .runtime) {
                     Button(LauncherL10n.text("action.repair_installation")) { model.repair() }
                         .buttonStyle(LauncherSecondaryButtonStyle())
                 }

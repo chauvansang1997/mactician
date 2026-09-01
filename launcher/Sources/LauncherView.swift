@@ -28,7 +28,16 @@ struct LauncherView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $model.shouldShowTelemetryNotice) {
+        .sheet(isPresented: Binding(
+            get: {
+                model.shouldShowTelemetryNotice && !model.isNativeIPadRuntimeSelected
+            },
+            set: { isPresented in
+                if !isPresented && !model.isNativeIPadRuntimeSelected {
+                    model.shouldShowTelemetryNotice = false
+                }
+            }
+        )) {
             LauncherTelemetryNoticeView(model: model)
                 .interactiveDismissDisabled()
         }
@@ -141,10 +150,18 @@ struct LauncherView: View {
 
             HStack(spacing: LauncherTheme.Spacing.small) {
                 Circle()
-                    .fill(LauncherTheme.ColorToken.interactive)
+                    .fill(
+                        model.isNativeIPadRuntimeSelected
+                            ? LauncherTheme.ColorToken.warning
+                            : LauncherTheme.ColorToken.interactive
+                    )
                     .frame(width: 7, height: 7)
                     .accessibilityHidden(true)
-                Text(LauncherL10n.format("header.game_version_format", model.gameDisplayVersion))
+                Text(
+                    model.isNativeIPadRuntimeSelected
+                        ? LauncherL10n.text("header.native_ipad_experimental")
+                        : LauncherL10n.format("header.game_version_format", model.gameDisplayVersion)
+                )
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundColor(LauncherTheme.ColorToken.textPrimary)
             }

@@ -1,3 +1,4 @@
+import AppKit
 import CryptoKit
 import Foundation
 
@@ -1213,6 +1214,7 @@ enum LauncherTests {
             .appendingPathComponent("tft-launcher-tests-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: temporary) }
         try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
+        try runNativeIPadRuntimeTests(in: temporary, sourceRoot: sourceRoot)
         let abc = temporary.appendingPathComponent("abc.txt")
         try Data("abc".utf8).write(to: abc)
         try expect(
@@ -1574,6 +1576,606 @@ enum LauncherTests {
         print("Mactician tests: OK")
     }
 
+    private static func runNativeIPadRuntimeTests(in temporary: URL, sourceRoot: URL) throws {
+        let defaultsName = "LauncherTests.native-feature.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: defaultsName) else {
+            throw TestFailure("native feature UserDefaults suite")
+        }
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        try expect(
+            !ExperimentalFeatures.nativeIPadRuntimeEnabled(
+                environment: [:], defaults: defaults, debugBuild: false
+            ),
+            "native runtime feature defaults to off in production"
+        )
+        try expect(
+            ExperimentalFeatures.nativeIPadRuntimeEnabled(
+                environment: ["MACTICIAN_ENABLE_NATIVE_IPAD_RUNTIME": "1"],
+                defaults: defaults,
+                debugBuild: false
+            ),
+            "native runtime environment feature gate"
+        )
+        defaults.set(true, forKey: ExperimentalFeatures.nativeIPadRuntimeDefaultsKey)
+        try expect(
+            ExperimentalFeatures.nativeIPadRuntimeEnabled(
+                environment: [:], defaults: defaults, debugBuild: false
+            ),
+            "native runtime internal defaults feature gate"
+        )
+        try expect(
+            GameRuntimeSelection.restoredKind(savedValue: nil, nativeEnabled: true) == .androidEmulator
+                && GameRuntimeSelection.restoredKind(
+                    savedValue: GameRuntimeKind.nativeIPadExperimental.rawValue,
+                    nativeEnabled: false
+                ) == .androidEmulator
+                && GameRuntimeSelection.restoredKind(
+                    savedValue: GameRuntimeKind.nativeIPadExperimental.rawValue,
+                    nativeEnabled: true
+                ) == .nativeIPadExperimental,
+            "Android remains the default and disabled native selection is ignored"
+        )
+        for locked in [true] {
+            try expect(
+                !GameRuntimeSelection.canSelect(
+                    .nativeIPadExperimental,
+                    nativeEnabled: true,
+                    stateMachineLocked: locked,
+                    androidRunning: false,
+                    nativeRunning: false
+                ),
+                "runtime selection is locked while launching, playing, or stopping"
+            )
+        }
+        try expect(
+            !GameRuntimeSelection.canSelect(
+                .nativeIPadExperimental,
+                nativeEnabled: false,
+                stateMachineLocked: false,
+                androidRunning: false,
+                nativeRunning: false
+            )
+                && !GameRuntimeSelection.canSelect(
+                    .nativeIPadExperimental,
+                    nativeEnabled: true,
+                    stateMachineLocked: false,
+                    androidRunning: true,
+                    nativeRunning: false
+                )
+                && !GameRuntimeSelection.canSelect(
+                    .androidEmulator,
+                    nativeEnabled: true,
+                    stateMachineLocked: false,
+                    androidRunning: false,
+                    nativeRunning: true
+                ),
+            "runtime selection rejects disabled or concurrently active backends"
+        )
+
+        let fixtureRoot = temporary.appendingPathComponent("native-ipad", isDirectory: true)
+        try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
+        let ownApp = try makeFakeApplication(in: fixtureRoot, name: "Mactician")
+        let preparedApp = try makeFakeApplication(in: fixtureRoot, name: "PreparedTFT")
+        let validator = NativeIPadRuntimeValidator(
+            architectureInspector: NativeArchitectureInspectorStub(architectures: ["arm64"]),
+            signatureInspector: NativeSignatureInspectorStub(kind: .adHoc),
+            hostArchitecture: { "arm64" },
+            macticianBundleURL: { ownApp }
+        )
+        let descriptor = try validator.validate(preparedApp)
+        try expect(
+            descriptor.bundleIdentifier == "dev.example.PreparedTFT"
+                && descriptor.displayName == "PreparedTFT"
+                && descriptor.shortVersion == "1.2.3"
+                && descriptor.buildVersion == "45"
+                && descriptor.architectures == ["arm64"]
+                && descriptor.signatureKind == .adHoc
+                && descriptor.canonicalURL == preparedApp.standardizedFileURL.resolvingSymlinksInPath(),
+            "valid prepared application descriptor"
+        )
+        let systemBookmark = try NativeIPadBookmarking.system.create(preparedApp)
+        let systemResolvedBookmark = try NativeIPadBookmarking.system.resolve(systemBookmark)
+        try expect(
+            !systemResolvedBookmark.stale
+                && systemResolvedBookmark.url.standardizedFileURL.resolvingSymlinksInPath()
+                    == descriptor.canonicalURL,
+            "system bookmark resolves the selected application across launches"
+        )
+        let iOSLayoutApp = try makeFakeApplication(
+            in: fixtureRoot,
+            name: "IOSLayout",
+            iOSBundleLayout: true
+        )
+        try expect(
+            try validator.validate(iOSLayoutApp).executableName == "IOSLayout",
+            "iOS-style application bundle layout"
+        )
+        let fakeHome = URL(fileURLWithPath: "/Users/example")
+        try expect(
+            NativeIPadDiagnostics.displayPath(
+                URL(fileURLWithPath: "/Users/example/Applications/Game.app"),
+                homeDirectory: fakeHome
+            ) == "~/Applications/Game.app"
+                && NativeIPadDiagnostics.displayMessage(
+                    "Failed at /Users/example/Applications/Game.app",
+                    homeDirectory: fakeHome
+                ) == "Failed at ~/Applications/Game.app",
+            "native diagnostics abbreviate the home directory"
+        )
+
+        let missingInfo = try makeFakeApplication(in: fixtureRoot, name: "MissingInfo")
+        try FileManager.default.removeItem(
+            at: missingInfo.appendingPathComponent("Contents/Info.plist")
+        )
+        try expectValidationFailure(validator, url: missingInfo, contains: "Info.plist")
+
+        let missingIdentifier = try makeFakeApplication(
+            in: fixtureRoot,
+            name: "MissingIdentifier",
+            infoOverrides: ["CFBundleIdentifier": ""]
+        )
+        try expectValidationFailure(validator, url: missingIdentifier, contains: "CFBundleIdentifier")
+
+        let missingExecutable = try makeFakeApplication(
+            in: fixtureRoot,
+            name: "MissingExecutable",
+            createExecutable: false
+        )
+        try expectValidationFailure(validator, url: missingExecutable, contains: "executable is missing")
+
+        let nonIPadApplication = try makeFakeApplication(
+            in: fixtureRoot,
+            name: "NonIPad",
+            infoOverrides: ["UIDeviceFamily": [1]]
+        )
+        try expectValidationFailure(
+            validator,
+            url: nonIPadApplication,
+            contains: "iPad compatibility"
+        )
+
+        let intelValidator = NativeIPadRuntimeValidator(
+            architectureInspector: NativeArchitectureInspectorStub(architectures: ["x86_64"]),
+            signatureInspector: NativeSignatureInspectorStub(kind: .developerID),
+            hostArchitecture: { "arm64" },
+            macticianBundleURL: { ownApp }
+        )
+        try expectValidationFailure(intelValidator, url: preparedApp, contains: "no arm64 slice")
+        try expectValidationFailure(
+            validator,
+            url: fixtureRoot.appendingPathComponent("not-an-app"),
+            contains: ".app extension"
+        )
+        try expectValidationFailure(validator, url: ownApp, contains: "cannot be selected")
+
+        let nestedOwnApp = try makeFakeApplication(
+            in: ownApp.appendingPathComponent("Contents", isDirectory: true),
+            name: "Nested"
+        )
+        try expectValidationFailure(validator, url: nestedOwnApp, contains: "cannot be selected")
+
+        let emptyVersionApp = try makeFakeApplication(
+            in: fixtureRoot,
+            name: "EmptyVersion",
+            infoOverrides: ["CFBundleShortVersionString": "", "CFBundleVersion": " "]
+        )
+        let emptyVersionDescriptor = try validator.validate(emptyVersionApp)
+        try expect(
+            emptyVersionDescriptor.shortVersion == nil && emptyVersionDescriptor.buildVersion == nil,
+            "empty application versions are optional"
+        )
+
+        let symlink = fixtureRoot.appendingPathComponent("PreparedLink.app")
+        try FileManager.default.createSymbolicLink(at: symlink, withDestinationURL: preparedApp)
+        try expect(
+            try validator.validate(symlink).canonicalURL == preparedApp.standardizedFileURL,
+            "top-level application symlink is canonicalized"
+        )
+
+        let corruptSignatureValidator = NativeIPadRuntimeValidator(
+            architectureInspector: NativeArchitectureInspectorStub(architectures: ["arm64"]),
+            signatureInspector: NativeSignatureInspectorStub(kind: .otherValid, shouldFail: true),
+            hostArchitecture: { "arm64" },
+            macticianBundleURL: { ownApp }
+        )
+        try expectValidationFailure(
+            corruptSignatureValidator,
+            url: preparedApp,
+            contains: "invalid code signature"
+        )
+
+        var lipoExecutable: URL?
+        var lipoArguments: [String] = []
+        let systemArchitectureInspector = SystemNativeIPadArchitectureInspector { executable, arguments in
+            lipoExecutable = executable
+            lipoArguments = arguments
+            return "arm64 x86_64\n"
+        }
+        let shellLikePath = URL(fileURLWithPath: "/tmp/game; touch never-executed")
+        try expect(
+            try systemArchitectureInspector.architectures(of: shellLikePath) == ["arm64", "x86_64"]
+                && lipoExecutable?.path == "/usr/bin/lipo"
+                && lipoArguments == ["-archs", shellLikePath.path],
+            "architecture inspection uses fixed lipo arguments without a shell"
+        )
+
+        let stateURL = fixtureRoot.appendingPathComponent("state/native-ipad-state.json")
+        let bookmarking = NativeIPadBookmarking(
+            create: { Data($0.path.utf8) },
+            resolve: { data in
+                guard let path = String(data: data, encoding: .utf8) else {
+                    throw TestFailure("bookmark encoding")
+                }
+                return (URL(fileURLWithPath: path), false)
+            }
+        )
+        let stateStore = NativeIPadRuntimeStateStore(stateURL: stateURL, bookmarking: bookmarking)
+        let validatedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        try stateStore.save(descriptor: descriptor, validatedAt: validatedAt)
+        guard case let .loaded(savedState, savedURL) = stateStore.load() else {
+            throw TestFailure("saved native state load")
+        }
+        try expect(
+            savedState.schemaVersion == 1
+                && savedState.descriptor == descriptor
+                && savedState.lastValidatedAt == validatedAt
+                && savedState.sourceKind == .userSelectedApplicationBundle
+                && savedURL == descriptor.canonicalURL,
+            "native state round trip and canonical path"
+        )
+        try stateStore.save(
+            descriptor: descriptor,
+            lastError: "local validation error",
+            validatedAt: validatedAt
+        )
+        guard case let .loaded(errorState, _) = stateStore.load() else {
+            throw TestFailure("native state local error load")
+        }
+        try expect(
+            errorState.lastError == "local validation error",
+            "native state stores a local-only validation error"
+        )
+
+        let staleStore = NativeIPadRuntimeStateStore(
+            stateURL: stateURL,
+            bookmarking: NativeIPadBookmarking(
+                create: bookmarking.create,
+                resolve: { _ in (descriptor.canonicalURL, true) }
+            )
+        )
+        guard case let .invalid(staleMessage) = staleStore.load() else {
+            throw TestFailure("stale bookmark rejection")
+        }
+        try expect(staleMessage.contains("stale"), "stale bookmark diagnostic")
+
+        var stateObject = try JSONSerialization.jsonObject(with: Data(contentsOf: stateURL))
+            as? [String: Any] ?? [:]
+        stateObject["schemaVersion"] = 99
+        try JSONSerialization.data(withJSONObject: stateObject).write(to: stateURL, options: .atomic)
+        guard case let .invalid(schemaMessage) = stateStore.load() else {
+            throw TestFailure("unknown native state schema rejection")
+        }
+        try expect(schemaMessage.contains("Unsupported"), "unknown native state schema diagnostic")
+
+        try Data("truncated".utf8).write(to: stateURL, options: .atomic)
+        guard case .invalid = stateStore.load() else {
+            throw TestFailure("corrupt native state rejection")
+        }
+        var androidState = InstallState()
+        androidState.stage = .ready
+        androidState.gameVersion = "android-state"
+        let androidStateURL = fixtureRoot.appendingPathComponent("android-install-state.json")
+        try SystemServices.saveState(androidState, to: androidStateURL)
+        try expect(
+            SystemServices.loadState(from: androidStateURL).gameVersion == "android-state",
+            "corrupt native state does not modify Android install state"
+        )
+
+        try stateStore.save(descriptor: descriptor, validatedAt: validatedAt)
+        let externalContainer = fixtureRoot.appendingPathComponent("external-container", isDirectory: true)
+        try FileManager.default.createDirectory(at: externalContainer, withIntermediateDirectories: true)
+        let androidAVDMarker = fixtureRoot.appendingPathComponent("avd/TftPBE.avd/config.ini")
+        try FileManager.default.createDirectory(
+            at: androidAVDMarker.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("android avd".utf8).write(to: androidAVDMarker)
+        let appExecutable = preparedApp.appendingPathComponent("Contents/MacOS/PreparedTFT")
+        let executableBeforeRepair = try Data(contentsOf: appExecutable)
+        _ = try validator.validate(preparedApp)
+        try expect(
+            try Data(contentsOf: appExecutable) == executableBeforeRepair,
+            "native repair only revalidates the external bundle"
+        )
+        try stateStore.reset()
+        try expect(
+            !FileManager.default.fileExists(atPath: stateURL.path)
+                && FileManager.default.fileExists(atPath: preparedApp.path)
+                && FileManager.default.fileExists(atPath: externalContainer.path)
+                && FileManager.default.fileExists(atPath: androidAVDMarker.path)
+                && SystemServices.loadState(from: androidStateURL).gameVersion == "android-state",
+            "native reset removes only native state"
+        )
+
+        let deletedApp = try makeFakeApplication(in: fixtureRoot, name: "DeletedAfterSave")
+        let deletedDescriptor = try validator.validate(deletedApp)
+        try stateStore.save(descriptor: deletedDescriptor)
+        try FileManager.default.removeItem(at: deletedApp)
+        try expectValidationFailure(validator, url: deletedDescriptor.canonicalURL, contains: "no longer exists")
+
+        try runNativeLifecycleTests(
+            descriptor: descriptor,
+            validator: validator
+        )
+
+        let settingsSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent("Sources/LauncherSettingsView.swift"),
+            encoding: .utf8
+        )
+        let stateViewsSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent("Sources/LauncherStateViews.swift"),
+            encoding: .utf8
+        )
+        let modelSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent("Sources/LauncherModel.swift"),
+            encoding: .utf8
+        )
+        try expect(
+            settingsSource.contains("if model.nativeIPadRuntimeEnabled")
+                && settingsSource.contains("if !model.isNativeIPadRuntimeSelected")
+                && stateViewsSource.contains("model.nativeIPadDescriptor == nil")
+                && stateViewsSource.contains("LauncherNativeIPadRequiredView")
+                && modelSource.contains("guard selectedRuntimeKind == .androidEmulator else { return }")
+                && modelSource.contains("guard activeRuntimeKind == .androidEmulator else { return }"),
+            "native UI is feature-gated, Android controls are hidden, and native telemetry is skipped"
+        )
+
+        for localization in ["en", "ru"] {
+            let stringsURL = sourceRoot.appendingPathComponent(
+                "Resources/\(localization).lproj/Localizable.strings"
+            )
+            guard let values = try PropertyListSerialization.propertyList(
+                from: Data(contentsOf: stringsURL),
+                format: nil
+            ) as? [String: String] else {
+                throw TestFailure("native \(localization) localization")
+            }
+            for key in [
+                "experimental.title", "experimental.runtime.android",
+                "experimental.runtime.native_ipad", "native_ipad.choose",
+                "native_ipad.not_selected.title", "native_ipad.ready.title",
+                "native_ipad.disclaimer"
+            ] {
+                try expect(values[key]?.isEmpty == false, "native localization key \(localization): \(key)")
+            }
+        }
+    }
+
+    private static func runNativeLifecycleTests(
+        descriptor: NativeIPadAppDescriptor,
+        validator: NativeIPadRuntimeValidator
+    ) throws {
+        let launchedApplication = WorkspaceRunningApplicationStub(
+            pid: 4_242,
+            bundleIdentifier: descriptor.bundleIdentifier,
+            bundleURL: descriptor.canonicalURL
+        )
+        let workspace = WorkspaceApplicationLauncherStub()
+        workspace.openResult = .success(launchedApplication)
+        let controller = NativeIPadRuntimeController(
+            workspace: workspace,
+            validator: validator,
+            stopTimeout: 0.01
+        )
+        var events: [RuntimeEvent] = []
+        try controller.launch(configuration: .nativeIPad(descriptor)) { events.append($0) }
+        try expect(
+            events.last?.event == .ready
+                && events.last?.pid == 4_242
+                && workspace.openCount == 1
+                && workspace.lastOpenedURL == descriptor.canonicalURL
+                && workspace.lastActivates == true
+                && controller.isRunning,
+            "successful native launch tracks the exact returned process"
+        )
+        workspace.emitTermination(launchedApplication)
+        workspace.emitTermination(launchedApplication)
+        try expect(
+            events.filter { $0.event == .stopped }.count == 1
+                && workspace.removeObserverCount == 1
+                && !controller.isRunning,
+            "native termination is delivered once and observer is cleaned up"
+        )
+
+        launchedApplication.isTerminatedValue = false
+        try controller.launch(configuration: .nativeIPad(descriptor)) { events.append($0) }
+        controller.shutdown()
+        try expect(
+            launchedApplication.terminateCount == 1,
+            "shutdown terminates an application launched by Mactician"
+        )
+
+        let attachedApplication = WorkspaceRunningApplicationStub(
+            pid: 4_243,
+            bundleIdentifier: descriptor.bundleIdentifier,
+            bundleURL: descriptor.canonicalURL
+        )
+        let attachedWorkspace = WorkspaceApplicationLauncherStub()
+        attachedWorkspace.existingApplications = [attachedApplication]
+        let attachedController = NativeIPadRuntimeController(
+            workspace: attachedWorkspace,
+            validator: validator,
+            stopTimeout: 0.01
+        )
+        var attachedEvents: [RuntimeEvent] = []
+        try attachedController.launch(configuration: .nativeIPad(descriptor)) {
+            attachedEvents.append($0)
+        }
+        try expect(
+            attachedEvents.last?.event == .ready
+                && attachedWorkspace.openCount == 0
+                && attachedApplication.activateCount == 1,
+            "already running exact application is activated without a second launch"
+        )
+        attachedController.shutdown()
+        try expect(
+            attachedApplication.terminateCount == 0
+                && attachedWorkspace.removeObserverCount == 1,
+            "shutdown leaves an attached pre-existing application running"
+        )
+
+        let gracefulApplication = WorkspaceRunningApplicationStub(
+            pid: 4_244,
+            bundleIdentifier: descriptor.bundleIdentifier,
+            bundleURL: descriptor.canonicalURL,
+            terminateImmediately: true
+        )
+        let gracefulWorkspace = WorkspaceApplicationLauncherStub()
+        gracefulWorkspace.openResult = .success(gracefulApplication)
+        let gracefulController = NativeIPadRuntimeController(
+            workspace: gracefulWorkspace,
+            validator: validator,
+            stopTimeout: 0.01
+        )
+        var gracefulEvents: [RuntimeEvent] = []
+        try gracefulController.launch(configuration: .nativeIPad(descriptor)) {
+            gracefulEvents.append($0)
+        }
+        gracefulController.stop()
+        try waitForRunLoop("graceful native stop") {
+            gracefulEvents.contains(where: { $0.event == .stopped })
+        }
+        try expect(
+            gracefulApplication.terminateCount == 1
+                && gracefulApplication.forceTerminateCount == 0,
+            "native stop prefers graceful termination"
+        )
+
+        let stubbornApplication = WorkspaceRunningApplicationStub(
+            pid: 4_245,
+            bundleIdentifier: descriptor.bundleIdentifier,
+            bundleURL: descriptor.canonicalURL,
+            terminateImmediately: false,
+            forceTerminates: true
+        )
+        let unrelatedApplication = WorkspaceRunningApplicationStub(
+            pid: 9_999,
+            bundleIdentifier: descriptor.bundleIdentifier,
+            bundleURL: descriptor.canonicalURL
+        )
+        let stubbornWorkspace = WorkspaceApplicationLauncherStub()
+        stubbornWorkspace.openResult = .success(stubbornApplication)
+        let stubbornController = NativeIPadRuntimeController(
+            workspace: stubbornWorkspace,
+            validator: validator,
+            stopTimeout: 0.01
+        )
+        var stubbornEvents: [RuntimeEvent] = []
+        try stubbornController.launch(configuration: .nativeIPad(descriptor)) {
+            stubbornEvents.append($0)
+        }
+        stubbornController.stop()
+        try waitForRunLoop("forced exact native stop") {
+            stubbornEvents.contains(where: { $0.event == .stopped })
+        }
+        try expect(
+            stubbornApplication.terminateCount == 1
+                && stubbornApplication.forceTerminateCount == 1
+                && unrelatedApplication.terminateCount == 0
+                && unrelatedApplication.forceTerminateCount == 0,
+            "force termination targets only the exact tracked process after timeout"
+        )
+
+        let failureWorkspace = WorkspaceApplicationLauncherStub()
+        failureWorkspace.openResult = .failure(TestFailure("open failed"))
+        let failureController = NativeIPadRuntimeController(
+            workspace: failureWorkspace,
+            validator: validator,
+            stopTimeout: 0.01
+        )
+        var failureEvents: [RuntimeEvent] = []
+        try failureController.launch(configuration: .nativeIPad(descriptor)) {
+            failureEvents.append($0)
+        }
+        try expect(
+            failureEvents.last?.event == .error
+                && failureWorkspace.removeObserverCount == 1
+                && !failureController.isRunning,
+            "native launch failure cleans up its observer"
+        )
+    }
+
+    private static func makeFakeApplication(
+        in root: URL,
+        name: String,
+        infoOverrides: [String: Any] = [:],
+        createExecutable: Bool = true,
+        iOSBundleLayout: Bool = false
+    ) throws -> URL {
+        let app = root.appendingPathComponent("\(name).app", isDirectory: true)
+        let contents = app.appendingPathComponent("Contents", isDirectory: true)
+        let executableDirectory = iOSBundleLayout
+            ? app
+            : contents.appendingPathComponent("MacOS", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: executableDirectory,
+            withIntermediateDirectories: true
+        )
+        var info: [String: Any] = [
+            "CFBundleIdentifier": "dev.example.\(name)",
+            "CFBundleDisplayName": name,
+            "CFBundleExecutable": name,
+            "CFBundlePackageType": "APPL",
+            "UIDeviceFamily": [1, 2],
+            "CFBundleShortVersionString": "1.2.3",
+            "CFBundleVersion": "45"
+        ]
+        for (key, value) in infoOverrides { info[key] = value }
+        try PropertyListSerialization.data(
+            fromPropertyList: info,
+            format: .xml,
+            options: 0
+        ).write(
+            to: (iOSBundleLayout ? app : contents).appendingPathComponent("Info.plist"),
+            options: .atomic
+        )
+        if createExecutable {
+            try Data("fixture executable".utf8).write(
+                to: executableDirectory.appendingPathComponent(name),
+                options: .atomic
+            )
+        }
+        return app
+    }
+
+    private static func expectValidationFailure(
+        _ validator: NativeIPadRuntimeValidator,
+        url: URL,
+        contains expected: String
+    ) throws {
+        do {
+            _ = try validator.validate(url)
+            throw TestFailure("validation unexpectedly accepted \(url.lastPathComponent)")
+        } catch {
+            try expect(
+                error.localizedDescription.localizedCaseInsensitiveContains(expected),
+                "validation failure for \(url.lastPathComponent): \(expected)"
+            )
+        }
+    }
+
+    private static func waitForRunLoop(
+        _ message: String,
+        timeout: TimeInterval = 1,
+        condition: () -> Bool
+    ) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() && Date() < deadline {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+        }
+        try expect(condition(), message)
+    }
+
     private static func recursiveFiles(at root: URL) throws -> [URL] {
         guard let enumerator = FileManager.default.enumerator(
             at: root,
@@ -1599,6 +2201,114 @@ enum LauncherTests {
             Thread.sleep(forTimeInterval: 0.01)
         }
         try expect(condition(), message)
+    }
+}
+
+private struct NativeArchitectureInspectorStub: NativeIPadArchitectureInspecting {
+    let architectures: [String]
+
+    func architectures(of _: URL) throws -> [String] {
+        architectures
+    }
+}
+
+private struct NativeSignatureInspectorStub: NativeIPadSignatureInspecting {
+    let kind: NativeIPadSignatureKind
+    var shouldFail = false
+
+    func signatureKind(of _: URL) throws -> NativeIPadSignatureKind {
+        if shouldFail {
+            throw LauncherError.integrity("The selected application has an invalid code signature")
+        }
+        return kind
+    }
+}
+
+private final class WorkspaceRunningApplicationStub: WorkspaceRunningApplication {
+    let processIdentifier: pid_t
+    let bundleIdentifier: String?
+    let bundleURL: URL?
+    var isTerminatedValue = false
+    var activateCount = 0
+    var terminateCount = 0
+    var forceTerminateCount = 0
+    let terminateImmediately: Bool
+    let forceTerminates: Bool
+
+    init(
+        pid: pid_t,
+        bundleIdentifier: String?,
+        bundleURL: URL?,
+        terminateImmediately: Bool = false,
+        forceTerminates: Bool = true
+    ) {
+        processIdentifier = pid
+        self.bundleIdentifier = bundleIdentifier
+        self.bundleURL = bundleURL
+        self.terminateImmediately = terminateImmediately
+        self.forceTerminates = forceTerminates
+    }
+
+    var isTerminated: Bool { isTerminatedValue }
+
+    func activate(options _: NSApplication.ActivationOptions) -> Bool {
+        activateCount += 1
+        return true
+    }
+
+    func terminate() -> Bool {
+        terminateCount += 1
+        if terminateImmediately { isTerminatedValue = true }
+        return true
+    }
+
+    func forceTerminate() -> Bool {
+        forceTerminateCount += 1
+        if forceTerminates { isTerminatedValue = true }
+        return true
+    }
+}
+
+private final class WorkspaceApplicationLauncherStub: WorkspaceApplicationLaunching {
+    var existingApplications: [any WorkspaceRunningApplication] = []
+    var openResult: Result<any WorkspaceRunningApplication, Error>?
+    var openCount = 0
+    var lastOpenedURL: URL?
+    var lastActivates: Bool?
+    var removeObserverCount = 0
+    private var terminationHandler: ((any WorkspaceRunningApplication) -> Void)?
+
+    func runningApplications(
+        withBundleIdentifier bundleIdentifier: String
+    ) -> [any WorkspaceRunningApplication] {
+        existingApplications.filter { $0.bundleIdentifier == bundleIdentifier }
+    }
+
+    func openApplication(
+        at applicationURL: URL,
+        activates: Bool,
+        completion: @escaping (Result<any WorkspaceRunningApplication, Error>) -> Void
+    ) {
+        openCount += 1
+        lastOpenedURL = applicationURL
+        lastActivates = activates
+        completion(openResult ?? .failure(TestFailure("missing open result")))
+    }
+
+    func observeTerminations(
+        _ handler: @escaping (any WorkspaceRunningApplication) -> Void
+    ) -> Any {
+        terminationHandler = handler
+        return NSObject()
+    }
+
+    func removeTerminationObserver(_: Any) {
+        removeObserverCount += 1
+        terminationHandler = nil
+    }
+
+    func emitTermination(_ application: any WorkspaceRunningApplication) {
+        terminationHandler?(application)
     }
 }
 
