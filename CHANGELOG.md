@@ -6,6 +6,8 @@ The current application metadata is version 1.1.3, build 48.
 
 ### Changed
 
+- Support signed game releases for the official Vietnam TFT package while
+  preserving the existing global package and rejecting unknown package IDs.
 - Add an approximate DAU metric backed by at most one unlinkable
   `daily_active` event per retained preferences domain and UTC day. The event
   contains no stable identifier, and the server does not retain its source IP.

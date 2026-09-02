@@ -67,6 +67,19 @@ enum LauncherTests {
             ]),
             "global and Vietnam TFT package validation"
         )
+        let unknownPackageRelease = GameRelease(
+            packageName: "com.example.teamfighttactics",
+            version: hostedRelease.version,
+            versionCode: hostedRelease.versionCode,
+            baseSHA256: hostedRelease.baseSHA256,
+            apks: hostedRelease.apks
+        )
+        do {
+            try unknownPackageRelease.validate()
+            throw TestFailure("unknown TFT package accepted")
+        } catch is LauncherError {
+            // Expected.
+        }
         var olderInstallState = InstallState()
         olderInstallState.gameVersion = "18.1-old"
         olderInstallState.gameVersionCode = 8_210_000
