@@ -780,6 +780,10 @@ final class LauncherModel: ObservableObject {
             status = event.message ?? "Booting Android…"
         case .emulatorStarted:
             emulatorPID = event.pid
+        case .deviceReady:
+            mode = .deviceRunning
+            status = LauncherL10n.text("android_running.title")
+            detail = LauncherL10n.text("android_running.description")
         case .ready:
             mode = .playing
             gameSessionTracker.start()
@@ -787,24 +791,20 @@ final class LauncherModel: ObservableObject {
                 status = LauncherL10n.text("native_ipad.running.title")
                 detail = LauncherL10n.text("native_ipad.running.description")
             } else {
+                let activePackage = event.package ?? gameRelease.packageName
                 status = "TFT is open"
                 detail = "Space — shop  •  D — reroll  •  F — XP  •  Tab — items/traits  •  V — players/damage  •  Control + Fn + F — fill window."
                 loginAnimationRepair.start(
                     adb: paths.adb,
-                    package: gameRelease.packageName,
+                    package: activePackage,
                     log: paths.launcherLog
                 )
                 if let emulatorPID {
                     let profile = launchProfile ?? selectedProfile
-                    audioRecovery.start(
-                        targetPID: emulatorPID,
-                        adb: paths.adb,
-                        log: paths.launcherLog
-                    )
                     fpsOverlay.start(
                         targetPID: emulatorPID,
                         adb: paths.adb,
-                        package: gameRelease.packageName
+                        package: activePackage
                     )
                     inputBridge.start(
                         targetPID: emulatorPID,

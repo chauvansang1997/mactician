@@ -13,7 +13,7 @@
 "footer.legal" = "TFT и Riot Games принадлежат их правообладателям";
 
 "ready.title" = "Можно играть";
-"ready.description" = "TFT установлен и готов к запуску.";
+"ready.description" = "TFT готов. При необходимости установите вьетнамский клиент из Google Play.";
 "ready.advanced_summary_format" = "%d%% · %d ГБ · %d vCPU";
 "ready.advanced_open" = "Открыть расширенные настройки";
 
@@ -85,7 +85,7 @@
 "install.what_is_installed" = "Что будет установлено";
 "install.android_api_format" = "Android API %@ · ARM64";
 "install.emulator_format" = "Эмулятор %@";
-"install.clean_profile" = "Чистый профиль";
+"install.clean_profile" = "Профиль Google Play";
 "install.license.accept" = "Я принимаю лицензионное соглашение Android SDK";
 "install.license.terms" = "Условия Google";
 "install.license.hint" = "Примите лицензию Android SDK, чтобы включить установку.";

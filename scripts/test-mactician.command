@@ -24,7 +24,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-jq -e '.schemaVersion == 1 and (.components | length) == 3 and (.game.apks | length) == 4' \
+jq -e '
+    .schemaVersion == 1
+    and (.components | length) == 3
+    and (.game.apks | length) == 4
+    and (
+        .components[]
+        | select(.id == "system-image")
+        | .version == "android-36-google_apis_playstore-arm64-v8a-r07"
+            and .url == "https://dl.google.com/android/repository/sys-img/google_apis_playstore/arm64-v8a-36_r07.zip"
+            and .size == 1886527965
+            and .sha256 == "ddb0feff5c23db9f42ceabd28f6542e8ffec639abf818bf6831a2658e6cf7905"
+            and .installPath == "sdk/system-images/android-36/google_apis_playstore/arm64-v8a"
+    )
+' \
     "$LAUNCHER_DIR/Resources/release-manifest.json" >/dev/null
 plutil -lint "$LAUNCHER_DIR/Info.plist" >/dev/null
 plutil -lint "$LAUNCHER_DIR/Resources/EmulatorHost-Info.plist" >/dev/null
@@ -45,6 +58,7 @@ for syntax_script in \
         "$LAUNCHER_DIR/Resources/emulator-host.command" \
         "$PROJECT_DIR/run-tft-root-affinity.command" \
         "$PROJECT_DIR/run-tft-angle-opengl.command" \
+        "$PROJECT_DIR/run-tft-google-play.command" \
         "$PROJECT_DIR/scripts/run-asg-experiment.command" \
         "$PROJECT_DIR/scripts/run-autonomous-trial-benchmark.command" \
         "$PROJECT_DIR/scripts/capture-late-pvp-session.command" \
@@ -2453,7 +2467,7 @@ fi
 if [[ "$*" == *" cmd locale set-app-locales"* ]]; then
     exit 0
 fi
-if [[ "$*" == *" pidof com.riotgames.league.teamfighttacticsvn" ]]; then
+if [[ "$*" == *" pidof com.riotgames.league.teamfighttactics" ]]; then
     typeset -i count=0
     [[ -f "$TFT_FAKE_ADB_STATE" ]] && count="$(<"$TFT_FAKE_ADB_STATE")"
     (( count += 1 ))
@@ -2476,6 +2490,7 @@ env \
     TFT_DISPLAY_DENSITY=320 \
     TFT_GAME_LANGUAGE=en-US \
     TFT_PACKAGE=com.riotgames.league.teamfighttacticsvn \
+    TFT_FALLBACK_PACKAGE=com.riotgames.league.teamfighttactics \
     TFT_CPU_CORES=6 \
     TFT_MEMORY_MB=6144 \
     TFT_UI_SCALE=1.0 \

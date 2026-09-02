@@ -789,6 +789,25 @@ enum LauncherTests {
             gameStoppedEvent.event == .gameStopped,
             "runtime game-closed event decoding"
         )
+        let deviceReadyEvent = try JSONDecoder().decode(
+            RuntimeEvent.self,
+            from: Data(#"{"event":"device_ready","serial":"emulator-5582"}"#.utf8)
+        )
+        try expect(
+            deviceReadyEvent.event == .deviceReady
+                && deviceReadyEvent.serial == "emulator-5582",
+            "Google Play device-ready event decoding"
+        )
+        let vietnamReadyEvent = try JSONDecoder().decode(
+            RuntimeEvent.self,
+            from: Data(
+                #"{"event":"ready","package":"com.riotgames.league.teamfighttacticsvn"}"#.utf8
+            )
+        )
+        try expect(
+            vietnamReadyEvent.package == GameRelease.vietnamPackageName,
+            "Vietnam runtime package event decoding"
+        )
         let gameActivityOutput = """
             Display #0:
               topResumedActivity=ActivityRecord{abc123 u0 com.riotgames.league.teamfighttactics/com.epicgames.unreal.GameActivity t42}

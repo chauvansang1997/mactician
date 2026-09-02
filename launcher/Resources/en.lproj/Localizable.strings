@@ -13,7 +13,7 @@
 "footer.legal" = "TFT and Riot Games are property of their respective owners";
 
 "ready.title" = "Ready to play";
-"ready.description" = "TFT is installed and ready.";
+"ready.description" = "TFT is ready. Install the Vietnam client from Google Play when needed.";
 "ready.advanced_summary_format" = "%d%% · %d GB · %d vCPU";
 "ready.advanced_open" = "Open advanced settings";
 
@@ -85,7 +85,7 @@
 "install.what_is_installed" = "What will be installed";
 "install.android_api_format" = "Android API %@ · ARM64";
 "install.emulator_format" = "Emulator %@";
-"install.clean_profile" = "Clean profile";
+"install.clean_profile" = "Google Play profile";
 "install.license.accept" = "I accept the Android SDK License Agreement";
 "install.license.terms" = "View Google terms";
 "install.license.hint" = "Accept the Android SDK license to enable installation.";

@@ -246,6 +246,7 @@ struct RuntimeEvent: Codable, Equatable {
         case booting
         case installingGame = "installing_game"
         case emulatorStarted = "emulator_started"
+        case deviceReady = "device_ready"
         case ready
         case gameStopped = "game_stopped"
         case stopped
@@ -256,6 +257,7 @@ struct RuntimeEvent: Codable, Equatable {
     var message: String?
     var pid: Int32?
     var serial: String?
+    var package: String?
     var code: Int32?
 }
 

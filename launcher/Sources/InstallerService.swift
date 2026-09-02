@@ -81,7 +81,7 @@ final class InstallerService {
 
     static func emulatorArguments(initializeData: Bool, logicalCPUCount: Int, memoryMB: Int) -> [String] {
         var arguments = [
-            "@Tft", "-id", "TFT-Tft", "-port", "5582", "-gpu", "host",
+            "@TftPlay", "-id", "TFT-TftPlay", "-port", "5582", "-gpu", "host",
             "-skin", "1920x1080", "-vsync-rate", "60",
             "-dns-server", "1.1.1.1,8.8.8.8",
             "-cores", "\(HostSizing.guestCPUCores(logicalCPUCount: logicalCPUCount))",
@@ -667,6 +667,7 @@ final class InstallerService {
             return fileManager.fileExists(atPath: target.appendingPathComponent("system.img").path)
                 && fileManager.fileExists(atPath: target.appendingPathComponent("encryptionkey.img").path)
                 && sourceProperties(at: target).contains("Pkg.Revision=7")
+                && sourceProperties(at: target).contains("SystemImage.TagId=google_apis_playstore")
         default:
             return false
         }
@@ -792,7 +793,7 @@ final class InstallerService {
         defer { try? fileManager.removeItem(at: nextAVD) }
         try fileManager.createDirectory(at: nextAVD, withIntermediateDirectories: true)
         let config = """
-        AvdId=Tft
+        AvdId=TftPlay
         avd.ini.displayname=Mactician
         abi.type=arm64-v8a
         hw.cpu.arch=arm64
@@ -809,10 +810,10 @@ final class InstallerService {
         skin.name=1920x1080
         showDeviceFrame=no
         disk.dataPartition.size=12288M
-        image.sysdir.1=system-images/android-36/google_apis/arm64-v8a/
-        tag.id=google_apis
-        tag.display=Google APIs
-        PlayStore.enabled=false
+        image.sysdir.1=system-images/android-36/google_apis_playstore/arm64-v8a/
+        tag.id=google_apis_playstore
+        tag.display=Google Play
+        PlayStore.enabled=true
         fastboot.forceColdBoot=yes
         fastboot.forceFastBoot=no
         avd.ini.encoding=UTF-8
@@ -821,7 +822,7 @@ final class InstallerService {
         let ini = """
         avd.ini.encoding=UTF-8
         path=\(paths.avdDirectory.path)
-        path.rel=Tft.avd
+        path.rel=TftPlay.avd
         target=android-36
         """
         try SystemServices.run(paths.qemuImg, [
@@ -891,20 +892,6 @@ final class InstallerService {
             )
             return value?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
         }
-        _ = try SystemServices.run(
-            paths.adb,
-            Self.adbArguments(["-s", "emulator-5582", "root"]),
-            environment: environment
-        )
-        try waitFor(timeout: 30, description: "root adbd") {
-            let value = try? SystemServices.run(
-                self.paths.adb,
-                Self.adbArguments(["-s", "emulator-5582", "shell", "id", "-u"]),
-                environment: environment
-            )
-            return value?.trimmingCharacters(in: .whitespacesAndNewlines) == "0"
-        }
-
         let apkPaths = release.apks.map { resources.appendingPathComponent($0.name).path }
         _ = try SystemServices.run(
             paths.adb,
