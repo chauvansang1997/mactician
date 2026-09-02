@@ -42,6 +42,7 @@
 "action.cancel" = "Cancel";
 "action.stop" = "Stop";
 "action.stop_game" = "Stop game";
+"action.stop_emulator" = "Stop emulator";
 "action.view_log" = "View log";
 "action.data_folder" = "Data folder";
 "action.repair_installation" = "Repair installation";
@@ -102,6 +103,9 @@
 "playing.title" = "Game running";
 "playing.description_format" = "TFT is open in %@.";
 "playing.fill_window_tip" = "Control + Fn + F fills the game window";
+"android_running.title" = "Android is running";
+"android_running.description" = "TFT is closed, but the Android device is still running.";
+"android_running.install_hint" = "Open Google Play or another app in the Android window. Launch TFT from its icon to play again.";
 "stopping.title" = "Stopping TFT";
 "stopping.description" = "Closing the emulator and restoring temporary settings…";
 

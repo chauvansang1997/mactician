@@ -6,6 +6,8 @@ The current application metadata is version 1.1.3, build 48.
 
 ### Changed
 
+- Keep the managed Android device open when TFT closes so other installed apps
+  remain available until the user explicitly stops the emulator.
 - Support signed game releases for the official Vietnam TFT package while
   preserving the existing global package and rejecting unknown package IDs.
 - Add an approximate DAU metric backed by at most one unlinkable

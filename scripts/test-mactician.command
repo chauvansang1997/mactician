@@ -2436,7 +2436,8 @@ if (( LIFECYCLE_STATUS != 0 )) \
 fi
 
 # After TFT has started, three consecutive missing package-PID checks represent
-# a real game close. Verify that the runtime emits game_stopped before cleanup.
+# a real game close. Verify that the runtime emits game_stopped once and keeps
+# the Android session alive until an explicit stop request.
 readonly GAME_EXIT_ADB="$LIFECYCLE_ROOT/fake-adb.command"
 readonly GAME_EXIT_STATE="$LIFECYCLE_ROOT/fake-adb-state"
 cat >"$GAME_EXIT_ADB" <<'FAKE_ADB_EOF'
@@ -2494,12 +2495,17 @@ for game_exit_attempt in {1..200}; do
     fi
     sleep 0.05
 done
+typeset game_exit_runtime_alive=0
+if (( game_exit_detected == 1 )) && kill -0 "$GAME_EXIT_PID" >/dev/null 2>&1; then
+    game_exit_runtime_alive=1
+fi
 kill -TERM "$GAME_EXIT_PID" >/dev/null 2>&1 || true
 wait "$GAME_EXIT_PID" || true
 if (( game_exit_detected == 0 )) \
+        || (( game_exit_runtime_alive == 0 )) \
         || [[ "$(grep -c '"event":"game_stopped"' "$LIFECYCLE_ROOT/game-exit-events.jsonl")" != 1 ]] \
         || grep -q '"event":"error"' "$LIFECYCLE_ROOT/game-exit-events.jsonl"; then
-    print -u2 "Launcher runtime did not classify a closed TFT process."
+    print -u2 "Launcher runtime did not preserve Android after TFT closed."
     cat "$LIFECYCLE_ROOT/game-exit-events.jsonl" >&2
     exit 1
 fi

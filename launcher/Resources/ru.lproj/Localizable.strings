@@ -42,6 +42,7 @@
 "action.cancel" = "Отмена";
 "action.stop" = "Остановить";
 "action.stop_game" = "Остановить игру";
+"action.stop_emulator" = "Остановить эмулятор";
 "action.view_log" = "Открыть журнал";
 "action.data_folder" = "Папка данных";
 "action.repair_installation" = "Восстановить установку";
@@ -102,6 +103,9 @@
 "playing.title" = "Игра запущена";
 "playing.description_format" = "TFT открыт на языке: %@.";
 "playing.fill_window_tip" = "Control + Fn + F заполняет окно игры";
+"android_running.title" = "Android запущен";
+"android_running.description" = "TFT закрыт, но устройство Android продолжает работать.";
+"android_running.install_hint" = "Откройте Google Play или другое приложение в окне Android. Чтобы снова играть, запустите TFT с его значка.";
 "stopping.title" = "Остановка TFT";
 "stopping.description" = "Закрываем эмулятор и восстанавливаем временные настройки…";
 

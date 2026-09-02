@@ -54,6 +54,7 @@ child_pid=$!
 typeset emulator_pid=""
 typeset emitted_pid=0
 typeset emitted_ready=0
+typeset game_started_once=0
 typeset locale_applied=0
 typeset missing_game_checks=0
 while kill -0 "$child_pid" >/dev/null 2>&1; do
@@ -80,6 +81,7 @@ while kill -0 "$child_pid" >/dev/null 2>&1; do
             && [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof "$TFT_PACKAGE" 2>/dev/null | tr -d '\r')" ]]; then
         emit "{\"event\":\"ready\",\"message\":\"TFT is open\",\"serial\":\"$TFT_SERIAL\"}"
         emitted_ready=1
+        game_started_once=1
     fi
     if (( emitted_ready == 1 )); then
         if [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof "$TFT_PACKAGE" 2>/dev/null | tr -d '\r')" ]]; then
@@ -88,7 +90,8 @@ while kill -0 "$child_pid" >/dev/null 2>&1; do
             (( missing_game_checks += 1 ))
             if (( missing_game_checks >= 3 )); then
                 emit "{\"event\":\"game_stopped\",\"message\":\"TFT closed\",\"serial\":\"$TFT_SERIAL\"}"
-                break
+                emitted_ready=0
+                missing_game_checks=0
             fi
         fi
     fi
@@ -98,7 +101,7 @@ done
 wait "$child_pid"
 readonly child_status=$?
 typeset normal_stop=0
-if (( stop_requested == 1 || emitted_ready == 1 )); then
+if (( stop_requested == 1 || game_started_once == 1 )); then
     normal_stop=1
 fi
 if (( child_status == 42 && stop_requested == 0 )); then

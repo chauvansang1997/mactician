@@ -10,6 +10,7 @@ final class LauncherModel: ObservableObject {
         case ready
         case launching
         case playing
+        case deviceRunning
         case stopping
         case failed
     }
@@ -235,7 +236,7 @@ final class LauncherModel: ObservableObject {
     }
 
     var settingsLocked: Bool {
-        mode == .launching || mode == .playing || mode == .stopping
+        mode == .launching || mode == .playing || mode == .deviceRunning || mode == .stopping
     }
 
     var maintenanceLocked: Bool {
@@ -556,7 +557,7 @@ final class LauncherModel: ObservableObject {
     }
 
     func stopGame() {
-        guard mode == .launching || mode == .playing else { return }
+        guard mode == .launching || mode == .playing || mode == .deviceRunning else { return }
         stopRequested = true
         mode = .stopping
         status = activeRuntimeKind == .nativeIPadExperimental
@@ -831,7 +832,13 @@ final class LauncherModel: ObservableObject {
             fail(errorMessage, origin: .runtime)
         case .gameStopped:
             finishGameSession(showAnnouncement: activeRuntimeKind == .androidEmulator)
-            stopGame()
+            loginAnimationRepair.stop()
+            audioRecovery.stop()
+            fpsOverlay.stop()
+            inputBridge.stop()
+            mode = .deviceRunning
+            status = LauncherL10n.text("android_running.title")
+            detail = LauncherL10n.text("android_running.description")
         case .stopped:
             let stoppedRuntime = activeRuntimeKind
             loginAnimationRepair.stop()
