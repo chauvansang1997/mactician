@@ -4,7 +4,7 @@ unsetopt BG_NICE
 
 readonly REQUIRED_ENV=(
     TFT_RUNTIME_PROJECT TFT_LAUNCH_LOG TFT_ADB TFT_AVD_HOME TFT_AVD_NAME
-    TFT_SERIAL TFT_DISPLAY_SIZE TFT_DISPLAY_DENSITY TFT_GAME_LANGUAGE
+    TFT_SERIAL TFT_DISPLAY_SIZE TFT_DISPLAY_DENSITY TFT_GAME_LANGUAGE TFT_PACKAGE
     TFT_CPU_CORES TFT_MEMORY_MB TFT_UI_SCALE TFT_PERFORMANCE_MODE
 )
 for required_name in "${REQUIRED_ENV[@]}"; do
@@ -13,6 +13,14 @@ for required_name in "${REQUIRED_ENV[@]}"; do
         exit 2
     fi
 done
+
+case "$TFT_PACKAGE" in
+    com.riotgames.league.teamfighttactics|com.riotgames.league.teamfighttacticsvn) ;;
+    *)
+        print -r -- '{"event":"error","message":"Unsupported TFT package","code":2}'
+        exit 2
+        ;;
+esac
 
 case "$TFT_GAME_LANGUAGE" in
     en-US|ru-RU|de-DE|fr-FR|es-ES|es-MX|pt-BR|it-IT|pl-PL|cs-CZ|hu-HU|ro-RO|el-GR|tr-TR|ar-AE|ja-JP|ko-KR|zh-CN|zh-SG|zh-TW|vi-VN|th-TH|id-ID)
@@ -63,18 +71,18 @@ while kill -0 "$child_pid" >/dev/null 2>&1; do
             && "$TFT_ADB" -s "$TFT_SERIAL" get-state >/dev/null 2>&1 \
             && [[ "$("$TFT_ADB" -s "$TFT_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
         "$TFT_ADB" -s "$TFT_SERIAL" shell cmd locale set-app-locales \
-            com.riotgames.league.teamfighttactics "$TFT_GAME_LANGUAGE" \
+            "$TFT_PACKAGE" "$TFT_GAME_LANGUAGE" \
             >>"$TFT_LAUNCH_LOG" 2>&1 || true
         locale_applied=1
     fi
     if (( emitted_ready == 0 )) \
             && "$TFT_ADB" -s "$TFT_SERIAL" get-state >/dev/null 2>&1 \
-            && [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof com.riotgames.league.teamfighttactics 2>/dev/null | tr -d '\r')" ]]; then
+            && [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof "$TFT_PACKAGE" 2>/dev/null | tr -d '\r')" ]]; then
         emit "{\"event\":\"ready\",\"message\":\"TFT is open\",\"serial\":\"$TFT_SERIAL\"}"
         emitted_ready=1
     fi
     if (( emitted_ready == 1 )); then
-        if [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof com.riotgames.league.teamfighttactics 2>/dev/null | tr -d '\r')" ]]; then
+        if [[ -n "$("$TFT_ADB" -s "$TFT_SERIAL" shell pidof "$TFT_PACKAGE" 2>/dev/null | tr -d '\r')" ]]; then
             missing_game_checks=0
         else
             (( missing_game_checks += 1 ))

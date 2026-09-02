@@ -166,7 +166,11 @@ final class InstallerService {
                 )
                 let hosted = try fetchHostedGameFeed(progress: { _ in })
                 let release = hosted.feed.release
-                if let installedVersionCode = currentState.gameVersionCode,
+                let samePackage = currentState.gamePackageName.map {
+                    $0 == release.packageName
+                } ?? true
+                if samePackage,
+                   let installedVersionCode = currentState.gameVersionCode,
                    let remoteVersionCode = release.versionCode,
                    remoteVersionCode < installedVersionCode {
                     throw LauncherError.unsupportedGame(
@@ -297,6 +301,7 @@ final class InstallerService {
         progressOnMain(progress, .init(phase: .installingGame, message: "Installing TFT…", fraction: 0.94))
         try provisionGame(release: gameRelease, resources: gameResources)
         state.stage = .ready
+        state.gamePackageName = gameRelease.packageName
         state.gameVersion = gameRelease.version
         state.gameVersionCode = gameRelease.versionCode
         state.gameBaseSHA256 = gameRelease.baseSHA256
@@ -323,15 +328,21 @@ final class InstallerService {
         try Self.prepareDirectories(at: paths)
         let hosted = try fetchHostedGameFeed(progress: progress)
         let release = hosted.feed.release
-        if let installedVersionCode = currentState.gameVersionCode,
+        let samePackage = currentState.gamePackageName.map {
+            $0 == release.packageName
+        } ?? true
+        if samePackage,
+           let installedVersionCode = currentState.gameVersionCode,
            let remoteVersionCode = release.versionCode,
            remoteVersionCode < installedVersionCode {
             throw LauncherError.unsupportedGame("The hosted TFT release is older than the installed game")
         }
 
-        if currentState.gameVersion == release.version,
+        if samePackage,
+           currentState.gameVersion == release.version,
            currentState.gameBaseSHA256 == release.baseSHA256 {
             var state = currentState
+            state.gamePackageName = release.packageName
             state.gameVersionCode = release.versionCode
             try SystemServices.saveState(state, to: paths.stateFile)
             try saveHostedGameFeed(hosted.data)
@@ -363,6 +374,7 @@ final class InstallerService {
 
         var state = currentState
         state.stage = .ready
+        state.gamePackageName = release.packageName
         state.gameVersion = release.version
         state.gameVersionCode = release.versionCode
         state.gameBaseSHA256 = release.baseSHA256

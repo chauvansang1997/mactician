@@ -76,9 +76,17 @@ final class LauncherModel: ObservableObject {
             let manifest = try SystemServices.loadManifest(from: paths.manifest)
             self.paths = paths
             self.manifest = manifest
-            installState = SystemServices.loadState(from: paths.stateFile)
-            gameRelease = (try? HostedGameUpdate.loadVerifiedFeed(from: paths.hostedGameFeed).release)
+            var restoredState = SystemServices.loadState(from: paths.stateFile)
+            let restoredRelease = (try? HostedGameUpdate.loadVerifiedFeed(from: paths.hostedGameFeed).release)
                 ?? manifest.game
+            if restoredState.gamePackageName == nil,
+               restoredState.gameVersion == restoredRelease.version,
+               restoredState.gameBaseSHA256 == restoredRelease.baseSHA256 {
+                restoredState.gamePackageName = restoredRelease.packageName
+                try? SystemServices.saveState(restoredState, to: paths.stateFile)
+            }
+            installState = restoredState
+            gameRelease = restoredRelease
             installer = InstallerService(paths: paths, manifest: manifest)
             androidRuntime = AndroidRuntimeControllerAdapter(runtime: RuntimeController(paths: paths))
             let nativeValidator = NativeIPadRuntimeValidator()
@@ -780,7 +788,11 @@ final class LauncherModel: ObservableObject {
             } else {
                 status = "TFT is open"
                 detail = "Space — shop  •  D — reroll  •  F — XP  •  Tab — items/traits  •  V — players/damage  •  Control + Fn + F — fill window."
-                loginAnimationRepair.start(adb: paths.adb, log: paths.launcherLog)
+                loginAnimationRepair.start(
+                    adb: paths.adb,
+                    package: gameRelease.packageName,
+                    log: paths.launcherLog
+                )
                 if let emulatorPID {
                     let profile = launchProfile ?? selectedProfile
                     audioRecovery.start(
@@ -788,7 +800,11 @@ final class LauncherModel: ObservableObject {
                         adb: paths.adb,
                         log: paths.launcherLog
                     )
-                    fpsOverlay.start(targetPID: emulatorPID, adb: paths.adb)
+                    fpsOverlay.start(
+                        targetPID: emulatorPID,
+                        adb: paths.adb,
+                        package: gameRelease.packageName
+                    )
                     inputBridge.start(
                         targetPID: emulatorPID,
                         adb: paths.adb,
@@ -977,6 +993,7 @@ final class LauncherModel: ObservableObject {
         gameRelease: GameRelease
     ) -> Bool {
         state.isReady
+            && (state.gamePackageName.map { $0 == gameRelease.packageName } ?? true)
             && state.gameVersion == gameRelease.version
             && state.gameBaseSHA256 == gameRelease.baseSHA256
             && state.overlaySHA256 != nil

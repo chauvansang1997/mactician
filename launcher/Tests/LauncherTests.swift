@@ -52,6 +52,21 @@ enum LauncherTests {
             publicKeyBase64: hostedPrivateKey.publicKey.rawRepresentation.base64EncodedString()
         )
         try expect(verifiedHostedFeed.release == hostedRelease, "signed hosted game feed")
+        let vietnamRelease = GameRelease(
+            packageName: GameRelease.vietnamPackageName,
+            version: hostedRelease.version,
+            versionCode: hostedRelease.versionCode,
+            baseSHA256: hostedRelease.baseSHA256,
+            apks: hostedRelease.apks
+        )
+        try vietnamRelease.validate()
+        try expect(
+            GameRelease.supportedPackageNames == Set([
+                GameRelease.globalPackageName,
+                GameRelease.vietnamPackageName
+            ]),
+            "global and Vietnam TFT package validation"
+        )
         var olderInstallState = InstallState()
         olderInstallState.gameVersion = "18.1-old"
         olderInstallState.gameVersionCode = 8_210_000
@@ -60,11 +75,16 @@ enum LauncherTests {
             "newer hosted game version detection"
         )
         var currentInstallState = olderInstallState
+        currentInstallState.gamePackageName = hostedRelease.packageName
         currentInstallState.gameVersion = hostedRelease.version
         currentInstallState.gameVersionCode = hostedRelease.versionCode
         try expect(
             !HostedGameUpdate.isNewer(hostedRelease, than: currentInstallState),
             "current hosted game version detection"
+        )
+        try expect(
+            HostedGameUpdate.isNewer(vietnamRelease, than: currentInstallState),
+            "Vietnam package switch is detected even at the same version"
         )
         var newerInstallState = currentInstallState
         newerInstallState.gameVersionCode = 8_230_000
@@ -1257,11 +1277,16 @@ enum LauncherTests {
         var state = InstallState()
         state.stage = .avdCreated
         state.installedComponents = ["emulator": "37.1.11"]
+        state.gamePackageName = GameRelease.vietnamPackageName
         let stateURL = temporary.appendingPathComponent("install-state.json")
         try SystemServices.saveState(state, to: stateURL)
         let restored = SystemServices.loadState(from: stateURL)
         try expect(restored.stage == .avdCreated, "state stage")
         try expect(restored.installedComponents == state.installedComponents, "state components")
+        try expect(
+            restored.gamePackageName == GameRelease.vietnamPackageName,
+            "Vietnam package state persistence"
+        )
         try Data("truncated".utf8).write(to: stateURL, options: .atomic)
         try expect(SystemServices.loadState(from: stateURL).stage == .empty, "corrupt state fallback")
 

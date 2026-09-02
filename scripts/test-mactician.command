@@ -2397,6 +2397,7 @@ env \
     TFT_DISPLAY_SIZE=1920x1080 \
     TFT_DISPLAY_DENSITY=320 \
     TFT_GAME_LANGUAGE=en-US \
+    TFT_PACKAGE=com.riotgames.league.teamfighttactics \
     TFT_CPU_CORES=6 \
     TFT_MEMORY_MB=6144 \
     TFT_UI_SCALE=1.0 \
@@ -2451,7 +2452,7 @@ fi
 if [[ "$*" == *" cmd locale set-app-locales"* ]]; then
     exit 0
 fi
-if [[ "$*" == *" pidof com.riotgames.league.teamfighttactics" ]]; then
+if [[ "$*" == *" pidof com.riotgames.league.teamfighttacticsvn" ]]; then
     typeset -i count=0
     [[ -f "$TFT_FAKE_ADB_STATE" ]] && count="$(<"$TFT_FAKE_ADB_STATE")"
     (( count += 1 ))
@@ -2473,6 +2474,7 @@ env \
     TFT_DISPLAY_SIZE=1920x1080 \
     TFT_DISPLAY_DENSITY=320 \
     TFT_GAME_LANGUAGE=en-US \
+    TFT_PACKAGE=com.riotgames.league.teamfighttacticsvn \
     TFT_CPU_CORES=6 \
     TFT_MEMORY_MB=6144 \
     TFT_UI_SCALE=1.0 \
