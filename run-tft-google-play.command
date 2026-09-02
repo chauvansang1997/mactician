@@ -24,6 +24,10 @@ readonly MEMORY_MB="${TFT_MEMORY_MB:-6144}"
 readonly GAME_LANGUAGE="${TFT_GAME_LANGUAGE:-en-US}"
 readonly PACKAGE="${TFT_PACKAGE:-com.riotgames.league.teamfighttacticsvn}"
 readonly FALLBACK_PACKAGE="${TFT_FALLBACK_PACKAGE:-com.riotgames.league.teamfighttactics}"
+readonly OPENGL_ES_VERSION=196610
+readonly EMULATOR_GRAPHICS_FEATURES='GLESDynamicVersion,Vulkan,GuestAngle,-GLPipeChecksum,VulkanBatchedDescriptorSetUpdate,AsyncComposeSupport,VirtioGpuFenceContexts'
+readonly ANGLE_FEATURES='exposeNonConformantExtensionsAndVersions:exposeES32ForTesting'
+readonly ANGLE_DISABLED_FEATURES="${TFT_ANGLE_DISABLED_FEATURES:-}"
 readonly PACKAGED_EMULATOR_APP="$PROJECT_DIR/Mactician Game Host.app"
 
 case "$PACKAGE" in
@@ -70,6 +74,9 @@ emulator_arguments=(
     -id "TFT-$AVD_NAME"
     -port "$EMULATOR_PORT"
     -gpu host
+    -feature "$EMULATOR_GRAPHICS_FEATURES"
+    -append-userspace-opt "androidboot.opengles.version=$OPENGL_ES_VERSION"
+    -append-userspace-opt androidboot.mactician.graphics_profile=osft
     -skin "$DISPLAY_SIZE"
     -vsync-rate 60
     -dns-server 1.1.1.1,8.8.8.8
@@ -118,8 +125,44 @@ until "$ADB" -s "$SERIAL" get-state >/dev/null 2>&1 \
     (( waited += 1 ))
 done
 
+readonly REPORTED_OPENGL_ES_VERSION="$(
+    "$ADB" -s "$SERIAL" shell getprop ro.opengles.version 2>/dev/null | tr -d '\r'
+)"
+readonly REPORTED_OPENGL_ES_FEATURES="$(
+    "$ADB" -s "$SERIAL" shell pm list features 2>/dev/null | tr -d '\r'
+)"
+if [[ "$REPORTED_OPENGL_ES_VERSION" != "$OPENGL_ES_VERSION" ]] \
+        || [[ "$REPORTED_OPENGL_ES_FEATURES" != *'feature:reqGlEsVersion=0x30002'* ]]; then
+    print -u2 "Android did not expose TFT's required OpenGL ES 3.2 capability."
+    print -u2 "Reported OpenGL ES version: ${REPORTED_OPENGL_ES_VERSION:-unknown}."
+    stop_emulator
+    exit 1
+fi
+
 "$ADB" -s "$SERIAL" shell wm size "$DISPLAY_SIZE" >/dev/null
 "$ADB" -s "$SERIAL" shell wm density "$DISPLAY_DENSITY" >/dev/null
+
+typeset angle_packages="$PACKAGE"
+typeset angle_values="angle"
+if [[ "$FALLBACK_PACKAGE" != "$PACKAGE" ]]; then
+    angle_packages+=",$FALLBACK_PACKAGE"
+    angle_values+=",angle"
+fi
+"$ADB" -s "$SERIAL" shell settings put global \
+    angle_gl_driver_selection_pkgs "$angle_packages" >/dev/null
+"$ADB" -s "$SERIAL" shell settings put global \
+    angle_gl_driver_selection_values "$angle_values" >/dev/null
+"$ADB" -s "$SERIAL" shell settings put global \
+    angle_egl_features "$ANGLE_FEATURES" >/dev/null
+"$ADB" -s "$SERIAL" shell setprop \
+    debug.angle.feature_overrides_enabled "$ANGLE_FEATURES"
+if [[ -n "$ANGLE_DISABLED_FEATURES" ]]; then
+    "$ADB" -s "$SERIAL" shell setprop \
+        debug.angle.feature_overrides_disabled "$ANGLE_DISABLED_FEATURES"
+else
+    "$ADB" -s "$SERIAL" shell "setprop debug.angle.feature_overrides_disabled ''"
+fi
+"$ADB" -s "$SERIAL" shell settings put global show_angle_in_use_dialog_box 0 >/dev/null
 
 typeset launch_package=""
 typeset candidate

@@ -82,6 +82,9 @@ final class InstallerService {
     static func emulatorArguments(initializeData: Bool, logicalCPUCount: Int, memoryMB: Int) -> [String] {
         var arguments = [
             "@TftPlay", "-id", "TFT-TftPlay", "-port", "5582", "-gpu", "host",
+            "-feature", "GLESDynamicVersion,Vulkan,GuestAngle,-GLPipeChecksum,VulkanBatchedDescriptorSetUpdate,AsyncComposeSupport,VirtioGpuFenceContexts",
+            "-append-userspace-opt", "androidboot.opengles.version=196610",
+            "-append-userspace-opt", "androidboot.mactician.graphics_profile=osft",
             "-skin", "1920x1080", "-vsync-rate", "60",
             "-dns-server", "1.1.1.1,8.8.8.8",
             "-cores", "\(HostSizing.guestCPUCores(logicalCPUCount: logicalCPUCount))",

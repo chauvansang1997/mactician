@@ -1250,6 +1250,12 @@ enum LauncherTests {
             "public DNS avoids local network access"
         )
         try expect(
+            provisioningArguments.contains("GLESDynamicVersion,Vulkan,GuestAngle,-GLPipeChecksum,VulkanBatchedDescriptorSetUpdate,AsyncComposeSupport,VirtioGpuFenceContexts")
+                && provisioningArguments.contains("androidboot.opengles.version=196610")
+                && provisioningArguments.contains("androidboot.mactician.graphics_profile=osft"),
+            "Google Play provisioning exposes TFT's required OpenGL ES 3.2 profile"
+        )
+        try expect(
             provisioningArguments.joined(separator: " ").contains("-memory 4096"),
             "low-memory provisioning"
         )
@@ -1376,6 +1382,17 @@ enum LauncherTests {
         let rootRuntimeScript = try String(
             contentsOf: sourceRoot.deletingLastPathComponent().appendingPathComponent("run-tft-root-affinity.command"),
             encoding: .utf8
+        )
+        let googlePlayRuntimeScript = try String(
+            contentsOf: sourceRoot.deletingLastPathComponent().appendingPathComponent("run-tft-google-play.command"),
+            encoding: .utf8
+        )
+        try expect(
+            googlePlayRuntimeScript.contains("androidboot.opengles.version=$OPENGL_ES_VERSION")
+                && googlePlayRuntimeScript.contains("feature:reqGlEsVersion=0x30002")
+                && googlePlayRuntimeScript.contains("angle_gl_driver_selection_pkgs")
+                && googlePlayRuntimeScript.contains("exposeES32ForTesting"),
+            "Google Play runtime preserves TFT's OpenGL ES 3.2 catalog and ANGLE requirements"
         )
         try expect(
             rootRuntimeScript.contains("Empty TFT streaming manifest detected")
